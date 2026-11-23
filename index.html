@@ -227,9 +227,28 @@ function load(){
 function save(){
   try{
     if(APP){ fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state),keepalive:true}); }
-    else localStorage.setItem(KEY, JSON.stringify(state));
-  }catch(e){}
+    else{
+      const j=JSON.stringify(state);
+      localStorage.setItem(KEY, j);
+      if(localStorage.getItem(KEY)!==j) throw new Error("verify");
+      storageWarn(false);
+    }
+  }catch(e){ if(!APP) storageWarn(true); }
 }
+/* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
+function storageWarn(on){
+  let b=document.getElementById("storewarn");
+  if(!on){ if(b) b.remove(); return; }
+  if(b) return;
+  b=document.createElement("div"); b.id="storewarn";
+  b.style.cssText="position:fixed;left:0;right:0;top:0;z-index:9999;background:#d62828;color:#fff;padding:10px 14px;font:600 15px system-ui;text-align:center";
+  b.textContent="⚠ Dieses Gerät kann gerade nicht speichern (Privatmodus oder Datei direkt geöffnet?). Bitte die Seite normal in Safari über die Internetadresse öffnen – sonst gehen Eingaben verloren. Unten „⬇ Sicherung“ nutzen.";
+  document.body.appendChild(b);
+}
+if(!APP) addEventListener("DOMContentLoaded",()=>{ if(location.protocol==="file:") storageWarn(true); });
+/* iPad/Safari: beim Wechseln der App oder Schließen nochmals speichern */
+addEventListener("pagehide",()=>{ if(!APP && typeof state==="object" && state) save(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && !APP && typeof state==="object" && state) save(); });
 if(APP) setInterval(()=>fetch("/api/ping").catch(()=>{}), 5000);
 state = load();
 if(!APP&&navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
