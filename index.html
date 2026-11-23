@@ -1,0 +1,1367 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mein Schulorganizer</title>
+<style>
+:root{
+  --bg:#f2f7ec; --card:#ffffff; --ink:#262626; --muted:#6a7564; --line:#d5e3c8;
+  --accent:#d62828; --accent2:#3f7d32; --accent3:#e9a94b; --soft:#fde6e3;
+  --leaf1:#4f8a3c; --leaf2:#76b25a;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#172015; --card:#223020; --ink:#f0f4ec; --muted:#a3b09a; --line:#34472f; --soft:#3d2625;
+    --accent:#e5484d; --accent2:#8fcf75; --leaf1:#2f5a26; --leaf2:#468a35;}
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;color:var(--ink);
+  background-color:var(--bg);
+  background-image:radial-gradient(circle,rgba(79,138,60,.10) 2px,transparent 2.5px);background-size:30px 30px}
+header{position:relative;overflow:hidden;padding:18px 22px 26px;color:#fff;
+  background:radial-gradient(circle,rgba(0,0,0,.10) 7px,transparent 8px) 0 0/48px 48px,
+             linear-gradient(135deg,var(--leaf1),var(--leaf2));
+  border-radius:0 0 30px 30px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.brand{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.logo{width:58px;height:58px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3));flex:none}
+header h1{margin:0;font-size:1.7rem;letter-spacing:.3px;text-shadow:0 1px 3px rgba(0,0,0,.25)}
+header .date{opacity:.92}
+.gear{position:absolute;top:14px;right:18px;z-index:2;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.15);color:#fff;font-size:1.4rem;cursor:pointer;line-height:1;transition:transform .3s}
+.gear:hover{transform:rotate(60deg);background:rgba(0,0,0,.28)}
+.crawl{position:absolute;bottom:2px;left:-50px;width:34px;height:34px;transform:rotate(90deg);
+  animation:crawl 38s linear infinite;opacity:.95}
+@keyframes crawl{to{left:calc(100% + 50px)}}
+@media (prefers-reduced-motion:reduce){.crawl{animation:none;left:calc(100% - 60px)}}
+nav{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;position:sticky;top:0;z-index:5;
+  background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav button{border:2px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:22px;cursor:pointer;font-size:.95rem;white-space:nowrap;transition:transform .12s}
+nav button:hover{transform:translateY(-1px);border-color:var(--accent)}
+nav button.active{background-color:var(--accent);border-color:#222;color:#fff;font-weight:600;
+  background-image:radial-gradient(circle at 10% 28%,#222 3px,transparent 3.5px),radial-gradient(circle at 92% 72%,#222 3px,transparent 3.5px)}
+main{padding:18px 16px;max-width:1100px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-top:5px solid var(--accent);border-radius:18px;padding:16px 18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(40,80,30,.08)}
+.card h2{margin:0 0 12px;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+.card h2::before{content:"";width:22px;height:22px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M28 8l-6-7M36 8l6-7' stroke='%23222' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='15' r='9' fill='%23222'/%3E%3Cellipse cx='32' cy='39' rx='22' ry='23' fill='%23d62828' stroke='%23222' stroke-width='3'/%3E%3Cpath d='M32 16v46' stroke='%23222' stroke-width='3'/%3E%3Ccircle cx='21' cy='33' r='5' fill='%23222'/%3E%3Ccircle cx='43' cy='33' r='5' fill='%23222'/%3E%3Ccircle cx='20' cy='49' r='4' fill='%23222'/%3E%3Ccircle cx='44' cy='49' r='4' fill='%23222'/%3E%3C/svg%3E") center/contain no-repeat}
+footer .lb{font-size:1.1rem}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:60vh;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.row>*{flex:1;min-width:120px}
+.row>button{flex:0 0 auto}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:1.1rem}
+.x:hover{color:var(--accent)}
+ul{list-style:none;margin:0;padding:0}
+li.item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+li.item:last-child{border:0}
+li.item .grow{flex:1}
+li.done .t{text-decoration:line-through;color:var(--muted)}
+.sub{color:var(--muted);font-size:.85rem}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:10px;background:var(--soft);color:var(--accent)}
+.tag.hoch{background:#fde0dc;color:#c0392b}
+.tag.mittel{background:#fdf0d5;color:#b9770e}
+.tag.niedrig{background:#e1efe2;color:#4c7a50}
+.over{color:#c0392b}
+.tt{width:100%;border-collapse:separate;border-spacing:4px;table-layout:fixed;min-width:640px}
+.tt th{font-weight:600;padding:6px;color:var(--muted)}
+.tt td{vertical-align:top}
+.tt .p{width:44px;text-align:center;color:var(--muted);font-weight:600}
+.cell{display:flex;flex-direction:column;gap:2px}
+.cell input{padding:4px 6px;font-size:.82rem}
+.cell input:first-child{font-weight:600}
+.scroll{overflow-x:auto}
+.today{background:var(--soft);border-radius:8px}
+.empty{color:var(--muted);font-style:italic}
+.student{border-top:1px solid var(--line);padding:10px 0}
+.grade{display:inline-flex;align-items:center;gap:4px;background:var(--soft);border-radius:10px;padding:2px 4px 2px 10px;margin:2px 4px 2px 0;font-size:.85rem}
+.avg{font-weight:700;color:var(--accent2)}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.ch{text-align:center;font-weight:600;color:var(--muted);padding:4px 0}
+.cd{min-height:84px;border:1px solid var(--line);border-radius:10px;padding:4px 5px;background:var(--card);overflow:hidden;font-size:.8rem}
+.cd.out{background:transparent;border-color:transparent}
+.cd.we{background:color-mix(in srgb,var(--card) 88%,var(--line))}
+.cd.ft{background:#f6c9c4;color:#5a1a14}
+.cd.fe{background:#cfe8c0;color:#1f4a14}
+.cd.td{outline:3px solid var(--accent);outline-offset:-2px}
+.cd b{display:block}
+.cd .lbl{display:block;font-size:.7rem;line-height:1.15;font-weight:600}
+.cd .ev,.ev{display:block;margin-top:2px;font-size:.7rem;line-height:1.2;background:var(--accent);color:#fff;border-radius:6px;padding:1px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:middle}
+@media (max-width:640px){.cd{min-height:64px}.cd .lbl,.cd .ev{font-size:.6rem}}
+.kid{max-width:820px;margin:0 auto;padding:22px;border-radius:30px;text-align:center;color:#2a2a2a;
+  font-family:"Comic Sans MS","Chalkboard SE","Segoe UI",system-ui,sans-serif;
+  background:linear-gradient(160deg,#fff7c2,#cfeaff);border:6px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.kid h1{font-size:2.2rem;margin:.3em 0}
+.kbar{font-size:1.6rem;letter-spacing:4px;margin-bottom:8px}
+.kq{font-size:2rem;line-height:1.4;font-weight:700;margin:14px 0 22px}
+.kq .gap{display:inline-block;min-width:90px;border-bottom:6px dashed #e5484d}
+.kspeak{font-size:1.5rem;border:0;background:#fff;border-radius:50%;width:48px;height:48px;cursor:pointer;margin-left:10px;box-shadow:0 3px 0 rgba(0,0,0,.2);vertical-align:middle}
+.kans{display:grid;gap:14px}
+.kb{font-family:inherit;font-size:1.6rem;font-weight:700;color:#fff;border:0;border-radius:24px;padding:18px 20px;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:transform .1s}
+.kb:hover:not(:disabled){transform:scale(1.02)}
+.kb:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.kb:disabled{cursor:default;color:#fff}
+.kb.right{background:#2e9e3a!important;outline:6px solid #b6f0b0;animation:pop .5s}
+.kb.wrong{background:#9aa0a6!important;opacity:.75}
+.kfeed{font-size:1.8rem;font-weight:700;margin:16px 0}
+.kfeed.yes{color:#2e7d32}.kfeed.no{color:#b45300}
+.kbig{font-size:3rem;line-height:1.3}
+@keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
+.testcard{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.testcard .grow{flex:1;min-width:160px}
+.qedit{border:2px dashed var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+@media (max-width:640px){.kq{font-size:1.5rem}.kb{font-size:1.3rem}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.kpi b{display:block;font-size:1.35rem}
+.kpi.main{background:var(--soft);border-color:var(--accent)}
+.kpi.main b{font-size:1.7rem}
+.bar{height:14px;border-radius:8px;background:var(--line);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--accent2);border-radius:8px}
+.mhead{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:14px 0 4px;padding:6px 10px;background:var(--bg);border-radius:10px}
+.pj{border:2px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:10px}
+.pj summary{cursor:pointer}
+#printview{display:none}
+@media print{
+  @page test{size:A4 portrait;margin:15mm}
+  body.printing .tp{page:test;font-size:15pt;line-height:1.5}
+  .tp h1{font-size:22pt;margin:0 0 6px}
+  .tp .tq{margin-bottom:12px;page-break-inside:avoid}
+  .tp .tq p{margin:2px 0}
+  .tp .o{padding-left:18px}
+  .tp .pb{page-break-after:always}
+  @page{size:A4 landscape;margin:12mm}
+  body.printing{background:#fff;color:#000}
+  body.printing>*:not(#printview){display:none!important}
+  body.printing #printview{display:block}
+  #printview h1{font-size:18pt;margin:0 0 4px}
+  #printview p{margin:0 0 10px;color:#444}
+  #printview table{width:100%;border-collapse:collapse;font-size:9.5pt}
+  #printview th,#printview td{border:1px solid #888;padding:4px 6px;text-align:left;vertical-align:top}
+  #printview th{background:#eee}
+  #printview tr{page-break-inside:avoid}
+}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="lb" viewBox="0 0 64 64">
+    <path d="M28 8l-6-7M36 8l6-7" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="32" cy="15" r="9" fill="#222"/>
+    <circle cx="28.5" cy="13" r="2" fill="#fff"/><circle cx="35.5" cy="13" r="2" fill="#fff"/>
+    <ellipse cx="32" cy="39" rx="22" ry="23" fill="#d62828" stroke="#222" stroke-width="3"/>
+    <ellipse cx="24" cy="26" rx="7" ry="4" fill="#fff" opacity=".25" transform="rotate(-25 24 26)"/>
+    <path d="M32 16v46" stroke="#222" stroke-width="3"/>
+    <circle cx="21" cy="33" r="5" fill="#222"/><circle cx="43" cy="33" r="5" fill="#222"/>
+    <circle cx="20" cy="49" r="4" fill="#222"/><circle cx="44" cy="49" r="4" fill="#222"/>
+  </symbol>
+</svg>
+<header>
+  <div class="brand">
+    <svg class="logo" aria-hidden="true"><use href="#lb"/></svg>
+    <div><h1>Mein Schulorganizer</h1><span class="date" id="today"></span></div>
+  </div>
+  <button class="gear" id="gear" title="Einstellungen" aria-label="Einstellungen">⚙</button>
+  <svg class="crawl" aria-hidden="true"><use href="#lb"/></svg>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<div id="printview"></div>
+<footer>
+  <span class="lb">🐞</span> Alles wird nur auf diesem Gerät im Browser gespeichert.
+  <button class="x" id="export" title="Sicherung speichern">⬇ Sicherung</button>
+  <button class="x" id="import" title="Sicherung laden">⬆ Laden</button>
+  <input type="file" id="file" accept=".json" hidden>
+</footer>
+
+<script>
+const KEY = "schulorganizer-v1";
+const DAYS = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+const PERIODS = 8;
+const TABS = [
+  ["home","Übersicht"],["plan","Stundenplan"],["cal","Kalender"],["tasks","Aufgaben"],
+  ["events","Termine"],["kasse","Klassenkasse"],["classes","Klassenliste"],["grades","Noten"],["tests","Schularbeiten"],["fobi","Fortbildungen"],["notes","Notizen"]
+];
+const EVENT_TYPES = ["Prüfung","Elternabend","Konferenz","Ausflug","Ferien/Frei","Sonstiges"];
+
+let state;
+let tab = "home";
+let openClass = null;
+const sdOpen = new Set();
+const SFIELDS = [
+  ["geburt","Geburtsdatum","date"],
+  ["religion","Religion","text"],
+  ["wohnort","Wohnort / Adresse","text"],
+  ["eltern","Eltern / Erziehungsberechtigte","text"],
+  ["telEltern","Telefon Eltern","tel"],
+  ["telNotfall","Notfallnummer","tel"],
+  ["emailEltern","E-Mail Eltern","email"],
+  ["notiz","Besonderheiten (Allergien, Förderbedarf, …)","area"]
+];
+
+/* Im Programm (http://127.0.0.1) wird in einer Datei gespeichert,
+   sonst (Datei direkt im Browser geöffnet) im Browser-Speicher. */
+const APP = location.protocol.startsWith("http");
+const EMPTY = () => ({timetable:{},tasks:[],events:[],classes:[],notes:"",kasse:[],tests:[],projekte:[]});
+function load(){
+  try{
+    if(APP){
+      const x=new XMLHttpRequest(); x.open("GET","/api/data",false); x.send();
+      if(x.status===200 && x.responseText.trim().startsWith("{")) return Object.assign(EMPTY(), JSON.parse(x.responseText));
+      return EMPTY();
+    }
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if(s) return Object.assign(EMPTY(), s);
+  }catch(e){}
+  return EMPTY();
+}
+function save(){
+  try{
+    if(APP){ fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state),keepalive:true}); }
+    else localStorage.setItem(KEY, JSON.stringify(state));
+  }catch(e){}
+}
+if(APP) setInterval(()=>fetch("/api/ping").catch(()=>{}), 5000);
+state = load();
+const uid = () => Math.random().toString(36).slice(2,10);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const iso = d => d.toISOString().slice(0,10);
+const todayIso = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return iso(d); };
+const fmt = s => s ? new Date(s+"T00:00").toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"}) : "";
+
+document.getElementById("today").textContent =
+  new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+const NAME_DEFAULTS = [...TABS, ["g_noten","Noten (Ordner)"],["g_ansagen","Ansagen & Auswertung (Ordner)"]];
+const lab = k => { const n=state.names&&state.names[k]; if(n&&n.trim()) return n.trim();
+  const d=NAME_DEFAULTS.find(x=>x[0]===k)[1]; return k==="g_noten"?"Noten":k==="g_ansagen"?"Ansagen & Auswertung":d; };
+function renderNav(){
+  document.getElementById("nav").innerHTML = TABS.map(([k])=>
+    `<button class="${k===tab?"active":""}" data-tab="${k}">${esc(lab(k))}</button>`).join("");
+}
+document.getElementById("gear").onclick=()=>{ tab=tab==="settings"?"home":"settings"; render(); };
+function vSettings(){
+  return `<div class="card"><h2>Einstellungen</h2>
+    <p class="sub">Hier kannst du die Namen der Reiter und Ordner selbst festlegen. Leer lassen = Standardname.</p>
+    ${NAME_DEFAULTS.map(([k,d])=>`<div class="row" style="align-items:center;margin-bottom:6px">
+      <span class="sub" style="flex:1">${esc(k==="g_noten"?"Ordner in Noten":k==="g_ansagen"?"Zweiter Ordner in Noten":d)}</span>
+      <input style="flex:2" data-nm="${k}" value="${esc((state.names||{})[k]||"")}" placeholder="${esc(k==="g_noten"?"Noten":k==="g_ansagen"?"Ansagen & Auswertung":d)}"></div>`).join("")}
+    <div class="row"><button class="btn ghost" data-nm-reset="1">Alle Namen zurücksetzen</button></div></div>`;
+}
+document.getElementById("nav").onclick = e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  tab=b.dataset.tab; render();
+};
+
+function render(){
+  renderNav();
+  const m=document.getElementById("main");
+  m.innerHTML = ({home:vHome,plan:vPlan,cal:vCal,tasks:vTasks,events:vEvents,kasse:kasseCard,classes:vClasses,grades:vGrades,tests:vTests,fobi:vFobi,notes:vNotes,settings:vSettings})[tab]();
+  bind(m);
+}
+
+/* ---------- Übersicht ---------- */
+function vHome(){
+  const t=todayIso();
+  const dow=(new Date().getDay()+6)%7; // Mo=0
+  let lessons="";
+  if(dow<5){
+    for(let p=0;p<PERIODS;p++){
+      const c=state.timetable[dow+"-"+p];
+      if(c && (c.fach||c.klasse||c.raum))
+        lessons+=`<li class="item"><b>${p+1}.</b><span class="grow">${esc(c.fach)} <span class="sub">${esc(c.klasse)}${c.raum?" · Raum "+esc(c.raum):""}</span></span></li>`;
+    }
+  }
+  const tasks=state.tasks.filter(x=>!x.done).sort((a,b)=>(a.due||"9").localeCompare(b.due||"9")).slice(0,5);
+  const evs=state.events.filter(e=>e.date>=t).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  return `<div class="grid">
+    <div class="card"><h2>📚 Heute im Unterricht</h2>
+      ${dow>=5?'<p class="empty">Wochenende – Zeit zum Erholen 🌿</p>':
+        lessons?`<ul>${lessons}</ul>`:'<p class="empty">Noch nichts im Stundenplan eingetragen.</p>'}</div>
+    <div class="card"><h2>✅ Offene Aufgaben</h2>
+      ${tasks.length?`<ul>${tasks.map(x=>`<li class="item"><span class="grow">${esc(x.text)}</span>
+        <span class="sub ${x.due&&x.due<t?"over":""}">${x.due?fmt(x.due):""}</span></li>`).join("")}</ul>`:'<p class="empty">Alles erledigt! 🎉</p>'}</div>
+    <div class="card"><h2>📅 Nächste Termine</h2>
+      ${evs.length?`<ul>${evs.map(e=>`<li class="item"><span class="grow">${esc(e.title)} <span class="tag">${esc(e.type)}</span></span>
+        <span class="sub">${fmt(e.date)}</span></li>`).join("")}</ul>`:'<p class="empty">Keine anstehenden Termine.</p>'}</div>
+  </div>`;
+}
+
+const eur = n => n.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+const K={f:"all",p:"all",open:new Set()};
+const sd=iso=>new Date(iso+"T00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
+function kasseData(){
+  const sel=state.kasseClass||"";
+  const c=state.classes.find(x=>x.id===sel);
+  const all=state.kasse||[];
+  const list=c?all.filter(k=>k.cid===c.id):all;
+  const inc=list.filter(k=>k.amount>0).reduce((a,b)=>a+b.amount,0);
+  const exp=Math.abs(list.filter(k=>k.amount<0).reduce((a,b)=>a+b.amount,0));
+  return {sel,c,list,inc,exp,sum:inc-exp};
+}
+function kasseCard(){
+  const {sel,c,list,inc,exp,sum}=kasseData();
+  const paidIds=new Set(list.filter(k=>k.sid&&!k.pid).map(k=>k.sid));
+  const cname=id=>{const x=state.classes.find(c=>c.id===id);return x?x.name:"";};
+  const chip=(grp,val,label,cur)=>`<button class="btn ${cur===val?"":"ghost"}" data-${grp}="${val}" style="padding:4px 12px;min-width:0">${label}</button>`;
+
+  // 1) Übersicht
+  let prog="";
+  if(c&&c.soll&&c.students.length){
+    const expected=c.soll*c.students.length;
+    const paidSum=list.filter(k=>k.sid&&!k.pid).reduce((a,b)=>a+b.amount,0);
+    const pct=Math.max(0,Math.min(100,Math.round(paidSum/expected*100)));
+    prog=`<div class="sub" style="margin-top:12px">Beiträge eingezahlt: <b>${eur(paidSum)}</b> von ${eur(expected)} (${pct} %)</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>`;
+  }
+  let h=`<div class="card"><h2>💰 Klassenkasse</h2>
+    <div class="row" style="align-items:center">
+      <select data-kclass style="flex:3"><option value="">Alle Klassen</option>
+        ${state.classes.map(x=>`<option value="${x.id}" ${x.id===sel?"selected":""}>${esc(x.name)}</option>`).join("")}</select>
+      <button class="btn ghost" data-print-kasse="1">🖨 Kassenbericht drucken</button>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><span class="sub">Einnahmen</span><b class="avg">+${eur(inc)}</b></div>
+      <div class="kpi"><span class="sub">Ausgaben</span><b class="over">−${eur(exp)}</b></div>
+      <div class="kpi main"><span class="sub">Kassenstand</span><b class="${sum<0?"over":"avg"}">${eur(sum)}</b></div>
+    </div>${prog}</div>`;
+
+  // 2) Einzahlungen (nur mit gewählter Klasse)
+  if(c){
+    const total=c.students.length, n=c.students.filter(s=>paidIds.has(s.id)).length, open=total-n;
+    const shown=[...c.students].sort((a,b)=>a.name.localeCompare(b.name,"de"))
+      .filter(s=>K.p==="all"||(K.p==="paid")===paidIds.has(s.id));
+    h+=`<div class="card"><h2>👧 Einzahlungen – ${esc(c.name)}</h2>
+      <div class="row" style="align-items:center">
+        <label class="sub" style="flex:0 0 auto">Beitrag pro Schüler (€)</label>
+        <input type="number" min="0" step="0.5" data-soll value="${c.soll||""}" placeholder="z. B. 20" style="max-width:110px">
+      </div>
+      <div class="row" style="align-items:center">
+        <b style="flex:0 0 auto;min-width:0">✅ ${n} bezahlt · ⏳ ${open} offen</b>
+        ${open>0&&c.soll?`<span class="sub" style="min-width:0">Noch offen: ${eur(open*c.soll)}</span>`:""}
+        ${chip("pf","all","Alle",K.p)}${chip("pf","paid","Bezahlt",K.p)}${chip("pf","open","Offen",K.p)}
+      </div>
+      ${shown.length?`<ul>${shown.map(s=>{
+        const pe=list.find(k=>k.sid===s.id&&!k.pid);
+        return `<li class="item"><input type="checkbox" style="width:auto" data-pay="${s.id}" ${pe?"checked":""}>
+          <span class="grow">${esc(s.name)}</span>
+          ${pe?`<span class="tag niedrig">✅ ${eur(pe.amount)} · ${sd(pe.date)}</span>`:`<span class="tag mittel">⏳ offen</span>`}</li>`;}).join("")}</ul>`
+        :`<p class="empty">${total?"Keine Schüler in dieser Ansicht.":"Noch keine Schüler – trag unten den ersten ein."}</p>`}
+      <form class="row" data-form="zahler" style="margin:10px 0 0">
+        <input name="name" placeholder="Schüler hat bezahlt: Name" required style="flex:3">
+        <input name="amount" type="number" min="0" step="0.01" placeholder="${c.soll?eur(c.soll):"Betrag €"}" style="max-width:110px">
+        <button class="btn">Bezahlt ✓</button>
+      </form></div>`;
+  }
+
+  if(c) h+=projekteCard(c);
+
+  // 3) Buchungen, nach Monat gruppiert
+  const rows=[...list].filter(k=>K.f==="all"||(K.f==="in")===(k.amount>0)).sort((a,b)=>b.date.localeCompare(a.date));
+  const groups=[]; rows.forEach(k=>{
+    const key=k.date.slice(0,7); let g=groups[groups.length-1];
+    if(!g||g.key!==key){ g={key,items:[]}; groups.push(g); }
+    g.items.push(k);
+  });
+  h+=`<div class="card"><h2>🧾 Buchungen</h2>
+    <form class="row" data-form="kasse">
+      <select name="type" style="flex:1"><option value="in">Einnahme</option><option value="out">Ausgabe</option></select>
+      <input name="amount" type="number" step="0.01" min="0" placeholder="Betrag €" required style="flex:1">
+      <input name="text" placeholder="Wofür? (z. B. Bastelmaterial)" required style="flex:3">
+      <button class="btn">+</button>
+    </form>
+    <div class="row" style="align-items:center">${chip("kf","all","Alle",K.f)}${chip("kf","in","Einnahmen",K.f)}${chip("kf","out","Ausgaben",K.f)}
+      <span class="sub" style="min-width:0">${rows.length} Buchungen</span></div>
+    ${groups.length?groups.map(g=>{
+      const [yy,mm]=g.key.split("-"), gi=g.items.filter(k=>k.amount>0).reduce((a,b)=>a+b.amount,0), ge=Math.abs(g.items.filter(k=>k.amount<0).reduce((a,b)=>a+b.amount,0));
+      return `<div class="mhead"><b>${MONATE[+mm-1]} ${yy}</b><span class="sub">+${eur(gi)} · −${eur(ge)} · Saldo ${eur(gi-ge)}</span></div>
+      <ul>${g.items.map(k=>`<li class="item"><span class="sub" style="width:44px">${sd(k.date)}</span>
+        <span class="grow">${esc(k.text)}${!c&&k.cid?` <span class="tag">${esc(cname(k.cid))}</span>`:""}</span>
+        <b class="${k.amount<0?"over":"avg"}">${k.amount>0?"+":""}${eur(k.amount)}</b>
+        <button class="x" data-del-kasse="${k.id}" title="Buchung löschen">✕</button></li>`).join("")}</ul>`;}).join("")
+      :'<p class="empty">Keine Buchungen.</p>'}
+  </div>`;
+  return h;
+}
+
+function projekteCard(c){
+  const t=todayIso();
+  const pjs=(state.projekte||[]).filter(p=>p.cid===c.id);
+  const students=[...c.students].sort((a,b)=>a.name.localeCompare(b.name,"de"));
+  return `<div class="card"><h2>📁 Projekte – ${esc(c.name)}</h2>
+    <p class="sub">z. B. Ausflug, Weihnachtsfeier oder Bastelgeld: Betrag pro Kind festlegen und abhaken, wer bezahlt hat. Jeder Haken bucht automatisch eine Einnahme.</p>
+    <form class="row" data-form="projekt">
+      <input name="name" placeholder="Projektname (z. B. Zoo-Ausflug)" required style="flex:3">
+      <input name="betrag" type="number" min="0" step="0.01" placeholder="Betrag pro Kind €" required style="flex:1">
+      <input name="frist" type="date" title="Zahlen bis (optional)" style="flex:1">
+      <button class="btn">Projekt anlegen</button></form>
+    ${pjs.length?pjs.map(pj=>{
+      const ents=(state.kasse||[]).filter(k=>k.pid===pj.id);
+      const paid=new Set(ents.filter(k=>k.sid).map(k=>k.sid));
+      const n=students.filter(s=>paid.has(s.id)).length, tot=students.length;
+      const inc=ents.filter(k=>k.amount>0).reduce((a,b)=>a+b.amount,0);
+      const exp=Math.abs(ents.filter(k=>k.amount<0).reduce((a,b)=>a+b.amount,0));
+      const pct=tot?Math.round(n/tot*100):0, late=pj.frist&&pj.frist<t&&n<tot;
+      return `<details class="pj" ${K.open.has(pj.id)?"open":""} ontoggle="this.open?K.open.add('${pj.id}'):K.open.delete('${pj.id}')">
+        <summary><b>${esc(pj.name)}</b> <span class="sub">${eur(pj.betrag)} pro Kind · ✅ ${n} von ${tot} bezahlt${pj.frist?" · bis "+fmt(pj.frist):""}</span>${late?' <span class="tag hoch">überfällig</span>':""}
+          <div class="bar"><i style="width:${pct}%"></i></div></summary>
+        <div style="padding-top:10px">
+          <p class="sub">Eingezahlt <b>${eur(inc)}</b> · Ausgaben <b>${eur(exp)}</b> · Stand <b class="${inc-exp<0?"over":"avg"}">${eur(inc-exp)}</b></p>
+          ${tot?`<ul>${students.map(s=>{const pe=ents.find(k=>k.sid===s.id);return `<li class="item">
+            <input type="checkbox" style="width:auto" data-pj-pay="${pj.id}|${s.id}" ${pe?"checked":""}>
+            <span class="grow">${esc(s.name)}</span>
+            ${pe?`<span class="tag niedrig">✅ ${eur(pe.amount)} · ${sd(pe.date)}</span>`:'<span class="tag mittel">⏳ offen</span>'}</li>`;}).join("")}</ul>`
+            :'<p class="empty">Die Klasse hat noch keine Schüler (unter „Klassenliste“ anlegen oder importieren).</p>'}
+          <form class="row" data-form="pjexp" data-pid="${pj.id}" style="margin-top:10px">
+            <input name="text" placeholder="Ausgabe für dieses Projekt (z. B. Eintritt)" required style="flex:3">
+            <input name="amount" type="number" min="0" step="0.01" placeholder="Betrag €" required style="flex:1">
+            <button class="btn ghost">− Ausgabe</button></form>
+          <div class="row"><button class="btn ghost" data-pj-print="${pj.id}">🖨 Abhak-Liste drucken</button>
+            <button class="btn ghost" data-pj-del="${pj.id}">🗑 Projekt löschen</button></div>
+        </div></details>`;}).join(""):'<p class="empty">Noch kein Projekt in dieser Klasse.</p>'}
+  </div>`;
+}
+function printProjekt(id){
+  const pj=(state.projekte||[]).find(x=>x.id===id); if(!pj) return;
+  const c=state.classes.find(x=>x.id===pj.cid); if(!c) return;
+  const ents=(state.kasse||[]).filter(k=>k.pid===id);
+  const rows=[...c.students].sort((a,b)=>a.name.localeCompare(b.name,"de")).map((s,i)=>{
+    const pe=ents.find(k=>k.sid===s.id);
+    return `<tr><td>${i+1}</td><td>${esc(s.name)}</td><td style="text-align:center">${pe?"☑":"☐"}</td><td>${pe?eur(pe.amount):""}</td><td>${pe?new Date(pe.date+"T00:00").toLocaleDateString("de-DE"):""}</td></tr>`;}).join("");
+  const n=c.students.filter(s=>ents.some(k=>k.sid===s.id)).length;
+  document.getElementById("printview").innerHTML=`<h1>${esc(pj.name)} – ${esc(c.name)}</h1>
+    <p>Betrag pro Kind: <b>${eur(pj.betrag)}</b>${pj.frist?" · Zahlen bis: "+new Date(pj.frist+"T00:00").toLocaleDateString("de-DE"):""} · Stand ${new Date().toLocaleDateString("de-DE")} · ${n} von ${c.students.length} bezahlt</p>
+    <table><tr><th>#</th><th>Name</th><th>Bezahlt</th><th>Betrag</th><th>Datum</th></tr>${rows}</table>`;
+  document.body.classList.add("printing");
+  window.print();
+  document.body.classList.remove("printing");
+}
+
+function printKasse(){
+  const {c,list,inc,exp,sum}=kasseData();
+  const cname=id=>{const x=state.classes.find(c=>c.id===id);return x?x.name:"";};
+  const rows=[...list].sort((a,b)=>a.date.localeCompare(b.date)).map(k=>`<tr>
+    <td>${new Date(k.date+"T00:00").toLocaleDateString("de-DE")}</td><td>${esc(k.text)}</td>${c?"":`<td>${esc(cname(k.cid))}</td>`}
+    <td style="text-align:right">${eur(k.amount)}</td></tr>`).join("");
+  const paid=new Set(list.filter(k=>k.sid&&!k.pid).map(k=>k.sid));
+  const open=c?c.students.filter(s=>!paid.has(s.id)).map(s=>s.name).sort((a,b)=>a.localeCompare(b,"de")):[];
+  document.getElementById("printview").innerHTML=`<h1>Kassenbericht – ${c?esc(c.name):"alle Klassen"}</h1>
+    <p>Stand ${new Date().toLocaleDateString("de-DE")} · Einnahmen ${eur(inc)} · Ausgaben ${eur(exp)} · <b>Kassenstand ${eur(sum)}</b></p>
+    <table><tr><th>Datum</th><th>Wofür</th>${c?"":"<th>Klasse</th>"}<th>Betrag</th></tr>${rows||`<tr><td colspan="4">Keine Buchungen</td></tr>`}</table>
+    ${c?`<p style="margin-top:14px"><b>Noch nicht bezahlt (${open.length}):</b> ${open.length?esc(open.join(", ")):"niemand – alle haben bezahlt"}</p>`:""}`;
+  document.body.classList.add("printing");
+  window.print();
+  document.body.classList.remove("printing");
+}
+
+/* ---------- Stundenplan ---------- */
+function vPlan(){
+  const dow=(new Date().getDay()+6)%7;
+  let h=`<div class="card scroll"><h2>Stundenplan</h2><table class="tt"><tr><th></th>${DAYS.map((d,i)=>`<th class="${i===dow?"today":""}">${d}</th>`).join("")}</tr>`;
+  for(let p=0;p<PERIODS;p++){
+    h+=`<tr><td class="p">${p+1}</td>`;
+    for(let d=0;d<5;d++){
+      const c=state.timetable[d+"-"+p]||{};
+      h+=`<td class="${d===dow?"today":""}"><div class="cell">
+        <input data-tt="${d}-${p}" data-f="fach" placeholder="Fach" value="${esc(c.fach)}">
+        <input data-tt="${d}-${p}" data-f="klasse" placeholder="Klasse" value="${esc(c.klasse)}">
+        <input data-tt="${d}-${p}" data-f="raum" placeholder="Raum" value="${esc(c.raum)}"></div></td>`;
+    }
+    h+="</tr>";
+  }
+  return h+"</table></div>";
+}
+
+/* ---------- Aufgaben ---------- */
+function vTasks(){
+  const t=todayIso();
+  const sorted=[...state.tasks].sort((a,b)=>(a.done-b.done)||(a.due||"9").localeCompare(b.due||"9"));
+  return `<div class="card"><h2>Aufgaben</h2>
+    <form class="row" data-form="task">
+      <input name="text" placeholder="Neue Aufgabe (z. B. Klassenarbeit korrigieren)" required style="flex:3">
+      <input name="due" type="date">
+      <select name="prio"><option value="mittel">Mittel</option><option value="hoch">Hoch</option><option value="niedrig">Niedrig</option></select>
+      <button class="btn">Hinzufügen</button>
+    </form>
+    ${sorted.length?`<ul>${sorted.map(x=>`<li class="item ${x.done?"done":""}">
+      <input type="checkbox" style="width:auto" data-toggle="${x.id}" ${x.done?"checked":""}>
+      <span class="grow t">${esc(x.text)}</span>
+      <span class="tag ${x.prio}">${x.prio}</span>
+      <span class="sub ${!x.done&&x.due&&x.due<t?"over":""}">${x.due?fmt(x.due):""}</span>
+      <button class="x" data-del-task="${x.id}">✕</button></li>`).join("")}</ul>`:'<p class="empty">Keine Aufgaben.</p>'}
+  </div>`;
+}
+
+/* ---------- Termine ---------- */
+function vEvents(){
+  const t=todayIso();
+  const sorted=[...state.events].sort((a,b)=>a.date.localeCompare(b.date));
+  return `<div class="card"><h2>Termine</h2>
+    <form class="row" data-form="event">
+      <input name="title" placeholder="Titel (z. B. Mathe-Klassenarbeit 7b)" required style="flex:3">
+      <input name="date" type="date" required>
+      <select name="type">${EVENT_TYPES.map(x=>`<option>${x}</option>`).join("")}</select>
+      <button class="btn">Hinzufügen</button>
+    </form>
+    ${sorted.length?`<ul>${sorted.map(e=>`<li class="item" style="${e.date<t?"opacity:.5":""}">
+      <span class="grow">${esc(e.title)} <span class="tag">${esc(e.type)}</span></span>
+      <span class="sub">${fmt(e.date)}</span>
+      <button class="x" data-del-event="${e.id}">✕</button></li>`).join("")}</ul>`:'<p class="empty">Keine Termine.</p>'}
+  </div>`;
+}
+
+/* ---------- Klassen & Noten ---------- */
+const GRADE_TYPES = {"Klassenarbeit":2,"Test":1,"Mündlich":1,"Hausaufgabe":0.5,"Sonstiges":1};
+const gw = g => { const w=parseFloat(g.gewicht); return isNaN(w)?1:w; };
+const fachOf = g => g.fach||"Allgemein";
+function wavg(grades){
+  let sum=0,w=0;
+  grades.forEach(g=>{const v=parseFloat(g.value); if(!isNaN(v)){sum+=v*gw(g);w+=gw(g);}});
+  return w>0?sum/w:null;
+}
+const fmtN = n => n==null?"–":n.toFixed(2).replace(".",",");
+const avg = s => fmtN(wavg(s.grades));
+const faecherOf = c => [...new Set(c.students.flatMap(s=>s.grades.map(fachOf)))].sort((a,b)=>a.localeCompare(b,"de"));
+function vClasses(){
+  let h=`<div class="card"><h2>Klassen</h2>
+    <form class="row" data-form="class"><input name="name" placeholder="Neue Klasse (z. B. 7b Mathe)" required style="flex:3"><button class="btn">Klasse anlegen</button></form>
+    <div class="row">${state.classes.map(c=>`<button class="btn ${c.id===openClass?"":"ghost"}" data-open="${c.id}">${esc(c.name)} (${c.students.length})</button>`).join("")||'<span class="empty">Noch keine Klasse angelegt.</span>'}</div></div>`;
+  const c=state.classes.find(x=>x.id===openClass);
+  if(c){
+    h+=`<div class="card"><h2>${esc(c.name)} <button class="x" data-del-class="${c.id}" title="Klasse löschen">🗑</button></h2>
+    <div class="row"><button class="btn ghost" data-print="1">🖨 Klassenliste drucken</button></div>
+    <details style="margin-bottom:14px"><summary class="btn ghost" style="display:inline-block">📥 Liste importieren (Excel/CSV)</summary>
+      <div style="margin-top:10px">
+        <p class="sub">In Excel die Zellen markieren (am besten mit der Überschriftenzeile: <i>Vorname, Nachname, Geburtsdatum, Religion, Wohnort, Eltern, Telefon, E-Mail, Besonderheiten</i>), kopieren (Strg+C) und hier einfügen (Strg+V). Oder eine CSV-Datei wählen. Eine einzelne Spalte mit Namen geht auch.</p>
+        <textarea id="imp" style="min-height:140px" placeholder="Hier einfügen …"></textarea>
+        <div class="row" style="margin-top:8px;align-items:center">
+          <input type="file" id="impfile" accept=".csv,.tsv,.txt" style="flex:2">
+          <button class="btn" data-do-import="1">Importieren</button>
+        </div>
+        <div id="impprev" class="sub"></div>
+      </div></details>
+    <form class="row" data-form="student"><input name="name" placeholder="Schülername" required style="flex:3"><button class="btn">Schüler hinzufügen</button></form>
+    ${c.students.map(s=>`<div class="student">
+      <div class="row" style="margin:0 0 6px;align-items:center">
+        <b style="flex:2">${esc(s.name)}</b>
+        <button class="x" data-del-student="${s.id}" style="flex:0">✕</button></div>
+      <details style="margin-bottom:6px" ${sdOpen.has(s.id)?"open":""} ontoggle="this.open?sdOpen.add('${s.id}'):sdOpen.delete('${s.id}')">
+        <summary class="sub">📋 Details${s.telEltern?" · 📞 "+esc(s.telEltern):""}${s.geburt?" · 🎂 "+fmt(s.geburt):""}</summary>
+        <div class="grid" style="gap:8px;margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          ${SFIELDS.map(([f,l,type])=>`<label class="sub">${l}
+            ${type==="area"?`<textarea style="min-height:60px" data-sd="${s.id}" data-f="${f}">${esc(s[f])}</textarea>`
+            :`<input type="${type}" data-sd="${s.id}" data-f="${f}" value="${esc(s[f])}">`}</label>`).join("")}
+        </div>
+      </details>
+      </div>`).join("")||'<p class="empty">Noch keine Schüler.</p>'}
+    </div>`;
+  }
+  return h;
+}
+
+/* ---------- Kalender: Feiertage & Schulferien Oberösterreich ---------- */
+const MONATE=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+let cal={y:new Date().getFullYear(),m:new Date().getMonth()};
+const pad2=n=>String(n).padStart(2,"0");
+const ymd=(y,m,d)=>`${y}-${pad2(m)}-${pad2(d)}`;
+function addDays(iso,n){
+  const [y,m,d]=iso.split("-").map(Number);
+  return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10);
+}
+function easter(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),
+    g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,
+    m=Math.floor((a+11*h+22*l)/451),t=h+l-7*m+114;
+  return ymd(y,Math.floor(t/31),(t%31)+1);
+}
+const HCACHE={};
+function holidays(y){
+  if(HCACHE[y]) return HCACHE[y];
+  const e=easter(y);
+  return HCACHE[y]=[
+    [ymd(y,1,1),"Neujahr"],[ymd(y,1,6),"Heilige Drei Könige"],[addDays(e,1),"Ostermontag"],
+    [ymd(y,5,1),"Staatsfeiertag"],[ymd(y,5,4),"Hl. Florian (Landesfeiertag OÖ, schulfrei)"],
+    [addDays(e,39),"Christi Himmelfahrt"],[addDays(e,50),"Pfingstmontag"],[addDays(e,60),"Fronleichnam"],
+    [ymd(y,8,15),"Mariä Himmelfahrt"],[ymd(y,10,26),"Nationalfeiertag"],[ymd(y,11,1),"Allerheiligen"],
+    [ymd(y,12,8),"Mariä Empfängnis"],[ymd(y,12,25),"Christtag"],[ymd(y,12,26),"Stefanitag"]
+  ];
+}
+// Schulferien Oberösterreich (Quelle: ferienwiki.de / BMBWF-Angaben, Stand Nov 2026)
+const FERIEN=[
+  ["Semesterferien","2026-02-16","2026-02-22"],["Osterferien","2026-03-28","2026-04-06"],
+  ["Pfingstferien","2026-05-23","2026-05-25"],["Sommerferien","2026-07-11","2026-09-13"],
+  ["Herbstferien","2026-10-27","2026-10-31"],["Weihnachtsferien","2026-12-24","2027-01-06"],
+  ["Semesterferien","2027-02-15","2027-02-20"],["Osterferien","2027-03-20","2027-03-29"],
+  ["Pfingstferien","2027-05-15","2027-05-17"],["Sommerferien","2027-07-10","2027-09-12"],
+  ["Herbstferien","2027-10-27","2027-10-31"],["Weihnachtsferien","2027-12-24","2028-01-06"],
+  ["Semesterferien","2028-02-21","2028-02-25"],["Osterferien","2028-04-08","2028-04-18"],
+  ["Pfingstferien","2028-06-03","2028-06-06"]
+];
+const ferienAt=iso=>FERIEN.find(f=>iso>=f[1]&&iso<=f[2]);
+const feiertagAt=iso=>holidays(+iso.slice(0,4)).find(h=>h[0]===iso);
+
+function vCal(){
+  const {y,m}=cal, t=todayIso();
+  const offset=(new Date(y,m,1).getDay()+6)%7, dim=new Date(y,m+1,0).getDate();
+  let cells="";
+  for(let i=0;i<42;i++){
+    const day=i-offset+1;
+    if(day<1||day>dim){ if(i%7===0&&day>dim) break; cells+=`<div class="cd out"></div>`; continue; }
+    const iso=ymd(y,m+1,day), wd=i%7, ft=feiertagAt(iso), fe=ferienAt(iso);
+    const evs=state.events.filter(e=>e.date===iso);
+    const cls=["cd",wd>=5?"we":"",ft?"ft":"",fe&&!ft?"fe":"",iso===t?"td":""].join(" ");
+    const showFe=fe&&(iso===fe[1]||day===1||wd===0);
+    cells+=`<div class="${cls}"><b>${day}</b>
+      ${ft?`<span class="lbl">${esc(ft[1])}</span>`:""}
+      ${showFe&&!ft?`<span class="lbl">${esc(fe[0])}</span>`:""}
+      ${evs.map(e=>`<span class="ev" title="${esc(e.type)}">${esc(e.title)}</span>`).join("")}</div>`;
+  }
+  // kommende freie Tage
+  const until=addDays(t,365), up=[];
+  [+t.slice(0,4),+t.slice(0,4)+1].forEach(yy=>holidays(yy).forEach(([d,n])=>{ if(d>=t&&d<=until) up.push([d,d,n,"ft"]); }));
+  FERIEN.forEach(f=>{ if(f[2]>=t&&f[1]<=until) up.push([f[1]<t?t:f[1],f[2],f[0],"fe",f[1]<t]); });
+  up.sort((a,b)=>a[0].localeCompare(b[0]));
+  const days=iso=>Math.round((new Date(iso+"T00:00")-new Date(t+"T00:00"))/864e5);
+  return `<div class="card"><h2>Kalender</h2>
+    <div class="row" style="align-items:center">
+      <button class="btn ghost" data-cal="-1">◀</button>
+      <b style="text-align:center;flex:3;font-size:1.15rem">${MONATE[m]} ${y}</b>
+      <button class="btn ghost" data-cal="1">▶</button>
+      <button class="btn" data-cal="0">Heute</button>
+    </div>
+    <div class="calgrid"><div class="ch">Mo</div><div class="ch">Di</div><div class="ch">Mi</div><div class="ch">Do</div><div class="ch">Fr</div><div class="ch">Sa</div><div class="ch">So</div>${cells}</div>
+    <p class="sub"><span class="dot" style="background:#f6c9c4"></span> Feiertag &nbsp; <span class="dot" style="background:#cfe8c0"></span> Schulferien OÖ &nbsp; <span class="ev" style="display:inline-block">Eigener Termin</span></p>
+  </div>
+  <div class="card"><h2>Kommende freie Tage</h2>
+    <ul>${up.slice(0,18).map(([a,b,n,k,run])=>`<li class="item"><span class="grow">${esc(n)} ${run?'<span class="tag">läuft gerade</span>':""}</span>
+      <span class="sub">${a===b?fmt(a):fmt(a)+" – "+fmt(b)}</span><span class="tag">${a<=t?"jetzt":"in "+days(a)+" Tg."}</span></li>`).join("")}</ul>
+    <p class="sub">Feiertage werden automatisch berechnet. Die Ferientermine stammen aus öffentlichen Quellen (Stand November 2026, bis 2028) und können sich ändern – bitte mit dem offiziellen Kalender der Bildungsdirektion Oberösterreich abgleichen. Schulautonome freie Tage deiner Schule trägst du unter „Termine“ mit der Art „Ferien/Frei“ ein, dann erscheinen sie hier.</p>
+  </div>`;
+}
+
+/* ---------- Tests (Testbaukasten für Kinder 5–9) ---------- */
+const T={view:"list",draft:null,play:null,status:""};
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const OPT_COLORS=["#e5484d","#3b82c4","#3f9b3a","#e08a00"];
+const STOP=new Set(("der die das ein eine einen einem einer eines und oder aber denn weil dass wenn wie was wer wo wann ist sind war waren wird werden hat haben hatte "+
+  "kann können muss müssen auch nicht nur noch schon sehr mit von zum zur dem den des sich sie ihr ihre ihren wir man dann dort hier viele alle jede jeder mehr gibt "+
+  "auf aus bei nach vor für über unter durch gegen ohne bis als dieser diese dieses jetzt immer oft manchmal gern sein seine seinen seiner ihnen").split(" "));
+const WORDRE=/^([^A-Za-zÄÖÜäöüß]*)([A-Za-zÄÖÜäöüß-]+)(.*)$/s;
+
+function makeQuestions(text,n){
+  const sents=text.replace(/\s+/g," ").trim().split(/(?<=[.!?])\s+/).filter(s=>{const w=s.split(" ").length;return w>=4&&w<=22;});
+  const info=sents.map(s=>{
+    const toks=s.split(" "), cands=[];
+    toks.forEach((t,k)=>{
+      const m=t.match(WORDRE); if(!m) return;
+      const w=m[2]; if(w.length<4||STOP.has(w.toLowerCase())) return;
+      cands.push({k,w,noun:/^[A-ZÄÖÜ]/.test(w)&&k>0});
+    });
+    return {s,toks,cands};
+  }).filter(x=>x.cands.length);
+  const pool=[...new Map(info.flatMap(x=>x.cands.filter(c=>c.noun)).map(c=>[c.w.toLowerCase(),c.w])).values()];
+  const out=[];
+  shuffle(info).slice(0,n).forEach((x,idx)=>{
+    const nouns=x.cands.filter(c=>c.noun);
+    const c=(nouns.length?shuffle(nouns):shuffle(x.cands.filter(c=>c.w.length>=5)))[0]||shuffle(x.cands)[0];
+    const inS=new Set(x.cands.map(c=>c.w.toLowerCase()));
+    const cap=/^[A-ZÄÖÜ]/.test(c.w);
+    const adj=w=>cap?w:w.charAt(0).toLowerCase()+w.slice(1);
+    const others=shuffle(pool.filter(w=>!inS.has(w.toLowerCase()))).map(adj);
+    if(others.length<2) return;
+    const repl=word=>x.toks.map((t,k)=>{ if(k!==c.k) return t; const m=t.match(WORDRE); return m[1]+word+m[3]; }).join(" ");
+    if(idx%3===2){
+      const truth=Math.random()<.5;
+      out.push({id:uid(),type:"tf",q:truth?x.s:repl(others[0]),correct:truth});
+    }else{
+      const opts=shuffle([c.w,others[0],others[1]]);
+      out.push({id:uid(),type:"choice",q:repl("___"),options:opts,correct:opts.indexOf(c.w)});
+    }
+  });
+  return out;
+}
+function normQ(q){
+  if(!q||typeof q.q!=="string") return null;
+  if(q.type==="tf"&&typeof q.correct==="boolean") return {id:uid(),type:"tf",q:q.q,correct:q.correct};
+  if(q.type==="choice"&&Array.isArray(q.options)&&q.options.length>=2&&Number.isInteger(q.correct)&&q.options[q.correct]!=null){
+    const opts=q.options.slice(0,4).map(String), right=opts[q.correct];
+    if(q.correct>3) return null;
+    const sh=shuffle(opts);
+    return {id:uid(),type:"choice",q:q.q,options:sh,correct:sh.indexOf(right)};
+  }
+  return null;
+}
+
+function vTests(){
+  if(T.view==="play") return vPlay();
+  if(T.view==="edit") return vTestEdit();
+  const list=state.tests||[], ki=state.ki||{};
+  return `<div class="card"><h2>${esc(lab("tests"))}</h2>
+    <div class="row"><button class="btn" data-ta="new">➕ Neuen Test erstellen</button></div>
+    ${list.length?list.map(t=>`<div class="testcard"><div class="grow"><b>${esc(t.title)}</b><div class="sub">${t.questions.length} Fragen</div></div>
+      <button class="btn" data-ta="play" data-id="${t.id}">▶ Spielen</button>
+      <button class="btn ghost" data-ta="edit" data-id="${t.id}">✏ Bearbeiten</button>
+      <button class="btn ghost" data-ta="print" data-id="${t.id}">🖨 Drucken</button>
+      <button class="x" data-ta="del" data-id="${t.id}" title="Löschen">🗑</button></div>`).join("")
+      :'<p class="empty">Noch kein Test. Lade ein Infoblatt hoch oder füge den Text ein – daraus entstehen kleine Fragen für die Kinder.</p>'}
+  </div>
+  <div class="card"><details><summary class="btn ghost" style="display:inline-block">⚙ KI-Einstellungen (optional)</summary><div style="margin-top:10px">
+    <p class="sub">Mit der KI entstehen bessere Fragen – auch aus Fotos und PDFs. Dafür braucht es Internet und einen Anthropic-API-Schlüssel (console.anthropic.com, Guthaben aufladen; ein Test kostet nur wenige Cent). Der Inhalt des Blatts wird dabei an Anthropic gesendet – bitte keine Namen von Kindern auf dem Blatt. Der Schlüssel bleibt auf diesem PC und kommt nicht in die Sicherung.</p>
+    <div class="row"><input type="password" data-ki="key" placeholder="API-Schlüssel (sk-ant-…)" value="${esc(ki.key)}">
+      <input data-ki="model" placeholder="Modell (Standard: claude-haiku-5-5)" value="${esc(ki.model)}"></div>
+  </div></details></div>`;
+}
+
+function vTestEdit(){
+  const d=T.draft;
+  const qEdit=(q,i)=>`<div class="qedit"><div class="row" style="align-items:center;margin-bottom:6px">
+      <b style="flex:0 0 auto;min-width:0">${i+1}.</b>
+      <input data-tq="${q.id}" data-f="q" value="${esc(q.q)}" placeholder="${q.type==="tf"?"Aussage":"Frage (Lücke mit ___ markieren)"}" style="flex:4">
+      <button class="x" data-ta="delq" data-id="${q.id}" title="Frage löschen" style="min-width:0">🗑</button></div>
+    ${q.type==="choice"?q.options.map((o,k)=>`<div class="row" style="margin-bottom:4px;align-items:center">
+        <input type="radio" style="width:auto;flex:0 0 auto;min-width:0" name="c-${q.id}" data-tq="${q.id}" data-correct="${k}" ${q.correct===k?"checked":""} title="richtige Antwort">
+        <input data-tq="${q.id}" data-opt="${k}" value="${esc(o)}" placeholder="Antwort ${k+1}"></div>`).join("")
+      :`<div class="row">${[true,false].map(v=>`<label style="min-width:0;flex:0 0 auto"><input type="radio" style="width:auto" name="c-${q.id}" data-tq="${q.id}" data-correct="${v}" ${q.correct===v?"checked":""}> ${v?"Stimmt":"Stimmt nicht"}</label>`).join("")}</div>`}
+    <div class="sub">${q.type==="choice"?"Der runde Punkt markiert die richtige Antwort.":"Wähle, ob die Aussage stimmt."}</div></div>`;
+  return `<div class="card"><h2>${d.id?"Test bearbeiten":"Neuer Test"}</h2>
+    <input data-dr="title" value="${esc(d.title)}" placeholder="Titel des Tests (z. B. Der Frosch)">
+    <p class="sub" style="margin:12px 0 4px">1. Infoblatt: Text einfügen oder Datei wählen (.txt – Foto/PDF nur mit KI)</p>
+    <textarea data-dr="text" style="min-height:150px" placeholder="Hier den Text vom Infoblatt einfügen …">${esc(d.text)}</textarea>
+    <div class="row" style="margin-top:8px;align-items:center">
+      <input type="file" id="tfile" accept=".txt,image/*,.pdf" style="flex:2">
+      <select data-dr="n" style="max-width:150px">${["5","8","10"].map(v=>`<option value="${v}" ${d.n===v?"selected":""}>${v} Fragen</option>`).join("")}</select>
+    </div>
+    ${d.file?`<p class="sub">📎 ${esc(d.file.name)} (${d.file.kind==="image"?"Foto":"PDF"}) – wird von der KI gelesen</p>`:""}
+    <p class="sub" style="margin:12px 0 4px">2. Fragen erstellen lassen</p>
+    <div class="row"><button class="btn" data-ta="gen">🪄 Fragen automatisch erstellen (offline)</button>
+      <button class="btn ghost" data-ta="genki">✨ Mit KI erstellen</button></div>
+    <div id="tstatus" class="sub">${esc(T.status)}</div>
+  </div>
+  <div class="card"><h2>Vorschau & Bearbeiten</h2>
+    <p class="sub">3. Prüfe die Fragen, ändere sie oder lösche unpassende. Eigene Fragen kannst du dazufügen.</p>
+    ${d.questions.length?d.questions.map(qEdit).join(""):'<p class="empty">Noch keine Fragen.</p>'}
+    <div class="row"><button class="btn ghost" data-ta="addchoice">+ Frage mit Antworten</button><button class="btn ghost" data-ta="addtf">+ Stimmt / Stimmt nicht</button></div>
+    <div class="row"><button class="btn" data-ta="save">💾 Test speichern</button><button class="btn ghost" data-ta="preview">▶ Probe spielen</button><button class="btn ghost" data-ta="cancel">Abbrechen</button></div>
+  </div>`;
+}
+
+function tFile(f){
+  if(!f) return; const d=T.draft;
+  if(/\.txt$/i.test(f.name)||f.type==="text/plain"){ f.text().then(t=>{d.text=t;d.file=null;render();}); }
+  else if(f.type.startsWith("image/")){
+    const r=new FileReader();
+    r.onload=()=>{ const img=new Image(); img.onload=()=>{
+      const s=Math.min(1,1568/Math.max(img.width,img.height)), c=document.createElement("canvas");
+      c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      d.file={kind:"image",name:f.name,media:"image/jpeg",data:c.toDataURL("image/jpeg",.85).split(",")[1]}; render(); };
+      img.src=r.result; };
+    r.readAsDataURL(f);
+  } else if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){
+    if(f.size>8e6){ alert("Die PDF ist zu groß (maximal 8 MB)."); return; }
+    const r=new FileReader();
+    r.onload=()=>{ d.file={kind:"pdf",name:f.name,media:"application/pdf",data:r.result.split(",")[1]}; render(); };
+    r.readAsDataURL(f);
+  } else alert("Dieses Dateiformat wird nicht unterstützt. Bitte .txt, Foto oder PDF wählen.");
+}
+
+function genOffline(){
+  const d=T.draft;
+  if(!d.text.trim()){ alert(d.file?"Fotos und PDFs kann nur die KI lesen. Bitte Text einfügen oder „Mit KI erstellen“ nutzen.":"Bitte zuerst den Text vom Infoblatt einfügen."); return; }
+  const qs=makeQuestions(d.text,+d.n||5);
+  if(!qs.length) T.status="Aus diesem Text konnte ich keine Fragen machen. Er braucht ganze Sätze und mehrere Hauptwörter.";
+  else { d.questions=qs; T.status=`✅ ${qs.length} Fragen erstellt – bitte unten prüfen und anpassen.`; }
+  render();
+}
+
+async function genKi(){
+  const d=T.draft, k=state.ki||{};
+  if(!k.key){ alert("Bitte zuerst im Reiter „"+lab("tests")+"“ unter „KI-Einstellungen“ den API-Schlüssel eintragen."); return; }
+  if(!d.text.trim()&&!d.file){ alert("Bitte Text einfügen oder eine Datei wählen."); return; }
+  const st=document.getElementById("tstatus");
+  if(st) st.textContent="✨ Die KI überlegt sich Fragen … (etwa 10–30 Sekunden)";
+  const n=+d.n||5, content=[];
+  if(d.file) content.push({type:d.file.kind==="image"?"image":"document",source:{type:"base64",media_type:d.file.media,data:d.file.data}});
+  content.push({type:"text",text:`Du hilfst einer Volksschullehrerin in Österreich. Erstelle aus dem Unterrichtsmaterial genau ${n} Testfragen für Kinder von 5 bis 9 Jahren.
+Regeln: Sehr einfache, kurze Sätze in kindgerechtem Deutsch. Nur Inhalte aus dem Material. Mische zwei Fragetypen:
+- "choice": Frage mit 3 Antwortmöglichkeiten, genau eine ist richtig ("correct" = Nummer der richtigen Antwort, beginnend bei 0). Lückensätze mit ___ sind erlaubt.
+- "tf": eine Aussage, die stimmt oder nicht stimmt ("correct" = true oder false).
+Antworte NUR mit JSON, ohne Erklärung, genau in diesem Format:
+{"title":"kurzer Titel","questions":[{"type":"choice","q":"…","options":["…","…","…"],"correct":0},{"type":"tf","q":"…","correct":true}]}
+${d.text.trim()?"\nMaterial:\n"+d.text:""}`});
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"content-type":"application/json","x-api-key":k.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:k.model||"claude-haiku-5-5",max_tokens:3000,messages:[{role:"user",content}]})});
+    const j=await r.json();
+    if(!r.ok) throw new Error((j.error&&j.error.message)||("Fehler "+r.status));
+    const txt=j.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+    const data=JSON.parse(txt.slice(txt.indexOf("{"),txt.lastIndexOf("}")+1));
+    const qs=(data.questions||[]).map(normQ).filter(Boolean);
+    if(!qs.length) throw new Error("Die KI hat keine brauchbaren Fragen geliefert.");
+    d.questions=qs; if(!d.title&&data.title) d.title=String(data.title);
+    T.status=`✅ ${qs.length} Fragen von der KI – bitte unten prüfen und anpassen.`;
+  }catch(e){ T.status="❌ "+e.message+" (Internetverbindung und Schlüssel prüfen.)"; }
+  render();
+}
+
+function cleanDraft(){
+  const d=T.draft, qs=[];
+  d.questions.forEach(q=>{
+    if(!q.q.trim()) return;
+    if(q.type==="tf"){ qs.push({id:q.id,type:"tf",q:q.q.trim(),correct:!!q.correct}); return; }
+    const opts=q.options.map((o,i)=>({o:o.trim(),c:i===q.correct})).filter(x=>x.o);
+    if(opts.length<2||!opts.some(x=>x.c)) return;
+    qs.push({id:q.id,type:"choice",q:q.q.trim(),options:opts.map(x=>x.o),correct:opts.findIndex(x=>x.c)});
+  });
+  if(!qs.length){ alert("Es gibt noch keine vollständige Frage (Frage + mindestens 2 Antworten + richtige Antwort markiert)."); return null; }
+  return {id:d.id||uid(),title:d.title.trim()||"Mein Test",text:d.text,questions:qs,created:d.created||todayIso()};
+}
+
+function startPlay(test,preview){
+  T.view="play";
+  T.play={test:{...test,questions:shuffle(test.questions)},i:0,score:0,chosen:null,preview:!!preview};
+}
+function speak(){
+  const p=T.play, q=p&&p.test.questions[p.i]; if(!q||!window.speechSynthesis) return;
+  const txt=q.type==="tf"?"Stimmt das? "+q.q:q.q.replace("___","Lücke")+". "+q.options.map((o,k)=>"ABCD"[k]+": "+o).join(". ");
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(txt); u.lang="de-AT"; u.rate=.85; speechSynthesis.speak(u);
+}
+function vPlay(){
+  const p=T.play, qs=p.test.questions;
+  const bar=`<div class="kbar">${qs.map((_,k)=>k<p.i?"🐞":k===p.i?"🔶":"⚪").join(" ")}</div>`;
+  if(p.i>=qs.length){
+    const r=p.score/qs.length, stars=r>=.8?3:r>=.5?2:1;
+    return `<div class="kid"><div class="kbig">${"⭐".repeat(stars)}${"☆".repeat(3-stars)}</div>
+      <h1>${r===1?"Fantastisch!":r>=.5?"Gut gemacht!":"Weiter üben, du schaffst das!"} 🎉</h1>
+      <p class="kq">Du hast <b>${p.score}</b> von <b>${qs.length}</b> richtig!</p>
+      <div class="kbig">${"🐞".repeat(p.score)||"🌱"}</div>
+      <div class="kans" style="margin-top:20px"><button class="kb" style="background:#3f9b3a" data-ta="again">🔁 Nochmal</button>
+      <button class="kb" style="background:#3b82c4" data-ta="back">⬅ Zurück</button></div></div>`;
+  }
+  const q=qs[p.i], done=p.chosen!==null, ok=done&&p.chosen===q.correct, last=p.i===qs.length-1;
+  const qhtml=esc(q.q).replace("___",'<span class="gap">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+  const answers=q.type==="tf"
+    ? [[true,"👍 Stimmt","#3b82c4"],[false,"👎 Stimmt nicht","#e08a00"]].map(([v,l,c])=>
+        `<button class="kb ${done&&v===q.correct?"right":""} ${done&&v===p.chosen&&v!==q.correct?"wrong":""}" style="background:${c}" data-ta="pick" data-i="${v}" ${done?"disabled":""}>${l}</button>`).join("")
+    : q.options.map((o,k)=>
+        `<button class="kb ${done&&k===q.correct?"right":""} ${done&&k===p.chosen&&k!==q.correct?"wrong":""}" style="background:${OPT_COLORS[k]}" data-ta="pick" data-i="${k}" ${done?"disabled":""}>${"ABCD"[k]}  ${esc(o)}</button>`).join("");
+  return `<div class="kid">${bar}
+    <div class="kq">${q.type==="tf"?'<div style="font-size:1.2rem;color:#555">Stimmt das?</div>':""}${qhtml}
+      <button class="kspeak" data-ta="speak" title="Vorlesen">🔊</button></div>
+    <div class="kans">${answers}</div>
+    ${done?`<div class="kfeed ${ok?"yes":"no"}">${ok?"Super! 🎉":"Fast! Die richtige Antwort ist grün. 💪"}</div>
+      <button class="kb" style="background:#7a4fb5" data-ta="next">${last?"Fertig ➜":"Weiter ➜"}</button>`:""}
+    <div style="margin-top:18px"><button class="x" data-ta="back" style="font-size:.9rem">✖ Beenden</button></div></div>`;
+}
+
+function tAction(a,ds){
+  const d=T.draft;
+  switch(a){
+    case "new": T.view="edit"; T.draft={title:"",text:"",n:"5",questions:[],file:null}; T.status=""; break;
+    case "edit": { const t=state.tests.find(x=>x.id===ds.id); if(!t) return;
+      T.draft=JSON.parse(JSON.stringify(t)); T.draft.text=t.text||""; T.draft.n="5"; T.draft.file=null; T.view="edit"; T.status=""; break; }
+    case "del": if(!confirm("Diesen Test löschen?")) return; state.tests=state.tests.filter(x=>x.id!==ds.id); save(); break;
+    case "play": { const t=state.tests.find(x=>x.id===ds.id); if(t) startPlay(t); break; }
+    case "print": printTest(state.tests.find(x=>x.id===ds.id)); return;
+    case "gen": genOffline(); return;
+    case "genki": genKi(); return;
+    case "addchoice": d.questions.push({id:uid(),type:"choice",q:"",options:["","",""],correct:0}); break;
+    case "addtf": d.questions.push({id:uid(),type:"tf",q:"",correct:true}); break;
+    case "delq": d.questions=d.questions.filter(q=>q.id!==ds.id); break;
+    case "save": { const t=cleanDraft(); if(!t) return;
+      state.tests=state.tests||[]; const i=state.tests.findIndex(x=>x.id===t.id);
+      if(i>=0) state.tests[i]=t; else state.tests.push(t);
+      save(); T.view="list"; T.draft=null; break; }
+    case "preview": { const t=cleanDraft(); if(!t) return; startPlay(t,true); break; }
+    case "cancel": T.view="list"; T.draft=null; break;
+    case "pick": { const p=T.play; if(p.chosen!==null) return;
+      const q=p.test.questions[p.i];
+      p.chosen=ds.i==="true"?true:ds.i==="false"?false:+ds.i;
+      if(p.chosen===q.correct) p.score++; break; }
+    case "next": T.play.i++; T.play.chosen=null; if(window.speechSynthesis) speechSynthesis.cancel(); break;
+    case "speak": speak(); return;
+    case "again": startPlay(T.play.test,T.play.preview); break;
+    case "back": if(window.speechSynthesis) speechSynthesis.cancel(); T.view=T.play.preview?"edit":"list"; T.play=null; break;
+  }
+  render();
+}
+
+function printTest(t){
+  if(!t) return;
+  const lines=(q,i,sol)=>`<div class="tq"><p><b>${i+1}.</b> ${q.type==="tf"?"Stimmt das? ":""}${esc(q.q)}</p>`+
+    (q.type==="tf"
+      ? `<p class="o">${sol&&q.correct?"☑":"☐"} stimmt &nbsp;&nbsp;&nbsp; ${sol&&!q.correct?"☑":"☐"} stimmt nicht</p>`
+      : q.options.map((o,k)=>`<p class="o">${sol&&k===q.correct?"☑":"☐"} ${"ABCD"[k]}) ${esc(o)}</p>`).join(""))+`</div>`;
+  document.getElementById("printview").innerHTML=`<div class="tp"><h1>🐞 ${esc(t.title)}</h1>
+    <p>Name: ______________________ &nbsp;&nbsp; Datum: ______________</p>
+    ${t.questions.map((q,i)=>lines(q,i,false)).join("")}
+    <div class="pb"></div><h1>Lösungen – ${esc(t.title)}</h1>${t.questions.map((q,i)=>lines(q,i,true)).join("")}</div>`;
+  document.body.classList.add("printing");
+  window.print();
+  document.body.classList.remove("printing");
+}
+
+/* ---------- Import (Excel einfügen / CSV) ---------- */
+const HEADMAP=[
+  [/notfall/,"telNotfall"],[/mail/,"emailEltern"],[/tel|handy|mobil|rufnummer/,"telEltern"],
+  [/geb/,"geburt"],[/religion|konfession/,"religion"],
+  [/wohnort|adress|stra|^ort$|plz/,"wohnort"],[/eltern|erziehung|mutter|vater/,"eltern"],
+  [/besonder|notiz|bemerk|allerg|förder/,"notiz"],
+  [/^vorname/,"vorname"],[/nachname|familienname/,"nachname"],[/^name$|sch[üu]ler/,"name"]
+];
+const IMPORT_DEFAULT=["name","geburt","religion","wohnort","eltern","telEltern","emailEltern","notiz"];
+function parseTable(text){
+  text=text.replace(/\r/g,"");
+  const lines=text.split("\n").filter(l=>l.trim());
+  let d=null;
+  if(text.includes("\t")) d="\t";
+  else if(text.includes(";")) d=";";
+  else if(lines.length&&lines.every(l=>l.includes(","))) d=",";
+  const rows=[]; let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"'&&cur==="") q=true;
+    else if(d&&ch===d){row.push(cur);cur="";}
+    else if(ch==="\n"){row.push(cur);rows.push(row);row=[];cur="";}
+    else cur+=ch;
+  }
+  row.push(cur); rows.push(row);
+  return rows.map(r=>r.map(c=>c.trim())).filter(r=>r.some(c=>c));
+}
+function parseDate(s){
+  let m;
+  if((m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})/))){
+    let y=+m[3]; if(y<100) y+=y>30?1900:2000;
+    return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  }
+  if((m=s.match(/^\d{4}-\d{2}-\d{2}/))) return m[0];
+  return "";
+}
+function parseStudents(text){
+  const rows=parseTable(text);
+  if(!rows.length) return {list:[],keys:[],header:false};
+  let keys=rows[0].map(h=>{
+    const n=h.toLowerCase().replace(/[^a-zäöüß]/g,"");
+    const hit=HEADMAP.find(([re])=>re.test(n)); return hit?hit[1]:null;
+  });
+  const header=keys.some(k=>["name","vorname","nachname"].includes(k));
+  let data=rows;
+  if(header) data=rows.slice(1);
+  else keys=rows[0].map((_,i)=>IMPORT_DEFAULT[i]||null);
+  const list=[];
+  data.forEach(r=>{
+    const o={};
+    keys.forEach((k,i)=>{
+      if(!k||!r[i]) return;
+      if(k==="geburt") o.geburt=parseDate(r[i]);
+      else o[k]=o[k]?o[k]+", "+r[i]:r[i];
+    });
+    const name=o.name||[o.vorname,o.nachname].filter(Boolean).join(" ");
+    if(!name) return;
+    o.name=name; delete o.vorname; delete o.nachname;
+    list.push(o);
+  });
+  return {list,keys:[...new Set(keys.filter(Boolean))],header};
+}
+const KEYLABEL={name:"Name",vorname:"Name",nachname:"Name",...Object.fromEntries(SFIELDS.map(([f,l])=>[f,l]))};
+function importPreview(text){
+  const el=document.getElementById("impprev"); if(!el) return;
+  if(!text.trim()){ el.textContent=""; return; }
+  const r=parseStudents(text);
+  const cols=[...new Set(r.keys.map(k=>KEYLABEL[k]))].join(", ");
+  el.innerHTML=r.list.length
+    ? `✅ <b>${r.list.length}</b> Schüler erkannt (${r.header?"Überschriften erkannt":"keine Überschriften – Reihenfolge: Name, Geburtsdatum, Religion, Wohnort, Eltern, Telefon, E-Mail, Besonderheiten"}).<br>Spalten: ${esc(cols)}<br>Zum Beispiel: ${esc(r.list.slice(0,3).map(s=>s.name).join(", "))}${r.list.length>3?" …":""}`
+    : "Keine Schüler erkannt.";
+}
+function doImport(text){
+  const c=state.classes.find(x=>x.id===openClass); if(!c) return;
+  const {list}=parseStudents(text);
+  if(!list.length){ alert("Keine Schüler erkannt."); return; }
+  let add=0,upd=0;
+  list.forEach(o=>{
+    let s=c.students.find(x=>x.name.toLowerCase()===o.name.toLowerCase());
+    if(!s){ s={id:uid(),name:o.name,grades:[]}; c.students.push(s); add++; } else upd++;
+    SFIELDS.forEach(([f])=>{ if(o[f]&&!s[f]) s[f]=o[f]; });
+  });
+  save(); render();
+  alert(`${add} Schüler neu angelegt.`+(upd?`\n${upd} gab es schon (leere Angaben wurden ergänzt, nichts überschrieben).`:""));
+}
+
+/* ---------- Noten ---------- */
+const AN_DEFAULT=()=>[["Sehr gut",1,96],["Gut",2,90],["Befriedigend",3,80],["Genügend",4,70],["Nicht genügend",5,0]];
+function anScale(){
+  const a=(state.ansagen??={});
+  if(!Array.isArray(a.scale)||a.scale.length!==5) a.scale=AN_DEFAULT().map(([n,g,min])=>({n,g,min}));
+  return a.scale;
+}
+function anCalc(w,f){
+  if(!(w>0)||f<0||isNaN(f)) return null;
+  f=Math.min(f,w);
+  const pf=f/w*100, pr=100-pf, sc=anScale();
+  const hit=sc.find(x=>pr+1e-9>=x.min)||sc[sc.length-1];
+  return {pf,pr,hit};
+}
+const pc=x=>(Math.round(x*10)/10).toLocaleString("de-DE")+" %";
+function anResult(){
+  const el=document.getElementById("anres"); if(!el) return;
+  const a=state.ansagen||{};
+  const r=anCalc(parseFloat(a.w),parseFloat(a.f)||0);
+  if(!r){ el.innerHTML='<span class="sub">Gib die Anzahl der Wörter ein, dann erscheint das Ergebnis.</span>'; return; }
+  const warn=(parseFloat(a.f)||0)>parseFloat(a.w)?'<div class="sub" style="color:#c0392b">Mehr Fehler als Wörter – gerechnet wird mit 100 % Fehlern.</div>':"";
+  el.innerHTML=`<div class="row" style="align-items:center;gap:18px">
+    <div>Fehleranteil<br><b style="font-size:1.6rem">${pc(r.pf)}</b></div>
+    <div>Richtig<br><b style="font-size:1.6rem">${pc(r.pr)}</b></div>
+    <div>Note<br><b class="avg" style="font-size:1.9rem">${r.hit.g}</b> <span class="sub">${esc(r.hit.n)}</span></div></div>${warn}`;
+}
+function anLimits(){
+  const el=document.getElementById("anlim"); if(!el) return;
+  const w=parseFloat((state.ansagen||{}).w);
+  if(!(w>0)){ el.innerHTML=""; return; }
+  const sc=anScale();
+  el.innerHTML=`<p class="sub" style="margin-top:14px">Höchstens erlaubte Fehler bei <b>${w}</b> Wörtern:</p>
+    <div>${sc.slice(0,-1).map(x=>`<span class="grade">${x.g} (${esc(x.n)}): <b>bis ${Math.floor(w*(100-x.min)/100+1e-9)} Fehler</b></span>`).join("")}</div>`;
+}
+function anRow(r){
+  const x=anCalc(parseFloat(r.w),parseFloat(r.f)||0);
+  return x?`${pc(x.pf)} Fehler · ${pc(x.pr)} richtig · Note <b class="avg">${x.hit.g}</b>`:'<span class="sub">–</span>';
+}
+function anList(){
+  const a=state.ansagen??={}, L=a.list??=[];
+  const dl=state.classes.length?`<select data-al-class style="max-width:220px"><option value="">Namen aus Klasse übernehmen …</option>${state.classes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>`:"";
+  return `<div class="card"><h2>Schülerliste</h2>
+    <p class="sub">Pro Schüler Wörter und Fehler eintragen – Fehleranteil und Note erscheinen sofort.</p>
+    <div class="row" style="margin-bottom:8px"><button class="btn" data-al-add="1">+ Schüler</button>${dl}
+      ${L.length?'<button class="btn ghost" data-al-clear="1">Liste leeren</button>':""}</div>
+    ${L.length?`<div class="scroll"><table class="tt" style="min-width:0;table-layout:auto"><tr><th style="text-align:left">Schüler</th><th>Wörter</th><th>Fehler</th><th style="text-align:left">Auswertung</th><th></th></tr>
+    ${L.map(r=>`<tr><td><input data-al="name" data-id="${r.id}" value="${esc(r.name)}" placeholder="Name"></td>
+      <td><input type="number" min="1" data-al="w" data-id="${r.id}" value="${esc(r.w??"")}" style="max-width:80px"></td>
+      <td><input type="number" min="0" step="0.5" data-al="f" data-id="${r.id}" value="${esc(r.f??"")}" style="max-width:80px"></td>
+      <td id="alr-${r.id}">${anRow(r)}</td><td><button class="x" data-al-del="${r.id}">✕</button></td></tr>`).join("")}</table></div>`
+    :'<p class="empty">Noch keine Schüler in der Liste.</p>'}</div>`;
+}
+function vAnsagen(){
+  const a=state.ansagen??={}, sc=anScale();
+  return `<div class="card"><h2>Ansagen – Auswertung</h2>
+    <div class="row" style="align-items:end">
+      <label style="flex:1">Wörter gesamt<input type="number" min="1" step="1" data-an="w" value="${esc(a.w??"")}" placeholder="z. B. 80"></label>
+      <label style="flex:1">Fehler<input type="number" min="0" step="0.5" data-an="f" value="${esc(a.f??"")}" placeholder="z. B. 4"></label></div>
+    <div id="anres" style="margin-top:12px"></div><div id="anlim"></div></div>
+  <div class="card"><h2>Notenschlüssel</h2>
+    <p class="sub">Ab wie viel Prozent <b>richtig</b> gibt es welche Note? Ändere die Werte nach Belieben – alles wird sofort neu berechnet und gespeichert.</p>
+    <table class="tt" style="min-width:0;table-layout:auto"><tr><th style="text-align:left">Note</th><th>ab % richtig</th><th>Fehleranteil bis</th></tr>
+    ${sc.map((x,i)=>`<tr><td><b>${x.g}</b> ${esc(x.n)}</td>
+      <td>${i===sc.length-1?'<span class="sub">darunter</span>':`<input type="number" min="0" max="100" step="0.5" data-an-min="${i}" value="${x.min}" style="max-width:100px"> %`}</td>
+      <td class="sub" data-an-fl="${i}">${i===sc.length-1?"":pc(100-x.min)}</td></tr>`).join("")}</table>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" data-an-reset="1">Vorschlag wiederherstellen</button></div></div>${anList()}`;
+}
+function vGrades(){
+  const sec=state.gSec==="ansagen"?"ansagen":"noten";
+  const secBar=`<div class="row" style="margin:0 0 10px"><button class="btn ${sec==="noten"?"":"ghost"}" data-gsec="noten">📁 ${esc(lab("g_noten"))}</button>
+    <button class="btn ${sec==="ansagen"?"":"ghost"}" data-gsec="ansagen">📁 ${esc(lab("g_ansagen"))}</button></div>`;
+  if(sec==="ansagen") return secBar+vAnsagen();
+  return secBar+vGradesMain();
+}
+function vGradesMain(){
+  const tabs=`<div class="card"><h2>Noten</h2><div class="row">${state.classes.map(c=>`<button class="btn ${c.id===openClass?"":"ghost"}" data-open="${c.id}">${esc(c.name)}</button>`).join("")
+    ||'<span class="empty">Lege zuerst unter „Klassenliste" eine Klasse mit Schülern an.</span>'}</div></div>`;
+  const c=state.classes.find(x=>x.id===openClass);
+  if(!c) return tabs+(state.classes.length?'<p class="empty">Wähle oben eine Klasse.</p>':"");
+  const table=state.gView==="table";
+  const fs=faecherOf(c);
+  const toolbar=`<div class="row"><button class="btn ${table?"ghost":""}" data-gview="single">Einzelansicht</button>
+    <button class="btn ${table?"":"ghost"}" data-gview="table">Tabelle (Übersicht)</button>
+    <button class="btn ghost" data-print-grades="1">🖨 Noten drucken</button></div>`;
+  if(!c.students.length) return tabs+`<div class="card"><h2>${esc(c.name)}</h2><p class="empty">In dieser Klasse gibt es noch keine Schüler (unter „Klassenliste" anlegen).</p></div>`;
+  if(table) return tabs+`<div class="card"><h2>${esc(c.name)}</h2>${toolbar}
+    <p class="sub">Durchschnitt je Fach (gewichtet) und Gesamtdurchschnitt.</p>
+    <div class="scroll"><table class="tt" style="min-width:0;table-layout:auto"><tr><th style="text-align:left">Schüler</th>${fs.map(f=>`<th>${esc(f)}</th>`).join("")}<th>Gesamt Ø</th></tr>
+    ${c.students.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${fs.map(f=>`<td style="text-align:center">${fmtN(wavg(s.grades.filter(g=>fachOf(g)===f)))}</td>`).join("")}<td style="text-align:center" class="avg">${avg(s)}</td></tr>`).join("")}
+    </table></div></div>`;
+  return tabs+`<div class="card"><h2>${esc(c.name)}</h2>${toolbar}
+    <datalist id="fl-${c.id}">${fs.map(f=>`<option value="${esc(f)}">`).join("")}</datalist>
+    ${c.students.map(s=>`<div class="student">
+      <div class="row" style="margin:0 0 6px;align-items:center">
+        <b style="flex:2">${esc(s.name)}</b><span>Gesamt Ø <span class="avg">${avg(s)}</span></span></div>
+      ${fs.map(f=>[f,s.grades.filter(g=>fachOf(g)===f)]).filter(x=>x[1].length).map(([f,gs])=>`
+        <div class="sub" style="margin:6px 0 2px"><b>${esc(f)}</b> · Ø ${fmtN(wavg(gs))}</div>
+        <div>${gs.map(g=>`<span class="grade">${esc(g.title)}: <b>${esc(g.value)}</b> <span class="sub">${esc(g.art||"")}${gw(g)!==1?" ×"+gw(g):""}</span><button class="x" data-del-grade="${s.id}|${g.id}">✕</button></span>`).join("")}</div>`).join("")}
+      <form class="row" data-form="grade" data-sid="${s.id}" style="margin:8px 0 0">
+        <input name="fach" list="fl-${c.id}" placeholder="Fach" style="max-width:140px">
+        <input name="title" placeholder="Leistung (z. B. Test 1)" required>
+        <select name="art" style="max-width:150px">${Object.keys(GRADE_TYPES).map(t=>`<option>${t}</option>`).join("")}</select>
+        <input name="gewicht" type="number" min="0" step="0.25" placeholder="Gewicht" title="Leer lassen = Standard der Art" style="max-width:90px">
+        <input name="value" type="number" min="1" max="5" step="0.25" placeholder="Note 1–5" required style="max-width:110px">
+        <button class="btn ghost">+ Note</button></form></div>`).join("")}
+    </div>`;
+}
+
+function printGrades(){
+  const c=state.classes.find(x=>x.id===openClass); if(!c) return;
+  const fs=faecherOf(c);
+  const students=[...c.students].sort((a,b)=>a.name.localeCompare(b.name,"de"));
+  const dd=s=>s?new Date(s+"T00:00").toLocaleDateString("de-DE"):"";
+  const detail=students.flatMap(s=>s.grades.map(g=>`<tr><td>${esc(s.name)}</td><td>${esc(fachOf(g))}</td><td>${esc(g.title)}</td><td>${esc(g.art||"")}</td><td>${gw(g)}</td><td>${dd(g.date)}</td><td><b>${esc(g.value)}</b></td></tr>`)).join("");
+  document.getElementById("printview").innerHTML=`<h1>Notenübersicht ${esc(c.name)}</h1>
+    <p>Stand ${new Date().toLocaleDateString("de-DE")} · Durchschnitte gewichtet</p>
+    <table><tr><th>Schüler</th>${fs.map(f=>`<th>${esc(f)}</th>`).join("")}<th>Gesamt Ø</th></tr>
+    ${students.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${fs.map(f=>`<td>${fmtN(wavg(s.grades.filter(g=>fachOf(g)===f)))}</td>`).join("")}<td><b>${avg(s)}</b></td></tr>`).join("")}</table>
+    ${detail?`<h1 style="font-size:14pt;margin-top:18px;page-break-before:always">Einzelnoten</h1>
+    <table><tr><th>Schüler</th><th>Fach</th><th>Leistung</th><th>Art</th><th>Gewicht</th><th>Datum</th><th>Note</th></tr>${detail}</table>`:""}`;
+  document.body.classList.add("printing");
+  window.print();
+  document.body.classList.remove("printing");
+}
+
+/* ---------- Fortbildungen ---------- */
+const schuljahr=d=>{ const y=+d.slice(0,4), m=+d.slice(5,7); const a=m>=9?y:y-1; return a+"/"+String(a+1).slice(2); };
+const fmtH=h=>(Math.round(h*100)/100).toLocaleString("de-DE");
+function fobiYears(){
+  const set=new Set((state.fobi||[]).map(f=>schuljahr(f.date))); set.add(schuljahr(todayIso()));
+  return [...set].sort().reverse();
+}
+function fobiSel(){
+  const yr=state.fobiYear||schuljahr(todayIso());
+  const list=(state.fobi||[]).filter(f=>yr==="alle"||schuljahr(f.date)===yr).sort((a,b)=>a.date.localeCompare(b.date));
+  return {yr,list,sum:list.reduce((t,f)=>t+(parseFloat(f.hours)||0),0)};
+}
+function vFobi(){
+  const {yr,list,sum}=fobiSel();
+  const dd=s=>new Date(s+"T00:00").toLocaleDateString("de-DE");
+  return `<div class="card"><h2>${esc(lab("fobi"))}</h2>
+    <p class="sub">Alle besuchten Fortbildungen sammeln – am Schuljahresende als Liste für den Vorgesetzten drucken oder als PDF speichern. Das Schuljahr läuft von September bis August.</p>
+    <form class="row" data-form="fobi" style="align-items:end">
+      <label style="flex:3">Titel der Fortbildung<input name="title" required placeholder="z. B. Leseförderung in der Volksschule"></label>
+      <label style="flex:1">Datum<input name="date" type="date" required value="${todayIso()}"></label>
+      <label style="flex:1">Dauer (EH)<input name="hours" type="number" min="0" step="0.25" required placeholder="z. B. 3"></label>
+      <label style="flex:2">Veranstalter / Ort<input name="where" placeholder="z. B. PH Wien"></label>
+      <button class="btn">+ Eintragen</button></form></div>
+  <div class="card"><h2>Liste</h2>
+    <div class="row" style="align-items:center">
+      <label style="flex:1">Schuljahr<select data-fyear="1">${fobiYears().map(y=>`<option ${y===yr?"selected":""}>${y}</option>`).join("")}<option value="alle" ${yr==="alle"?"selected":""}>alle</option></select></label>
+      <label style="flex:2">Name der Lehrkraft (für den Ausdruck)<input data-fname="1" value="${esc(state.fobiName||"")}" placeholder="Vor- und Nachname"></label>
+      <button class="btn ghost" data-print-fobi="1">🖨 Liste drucken / PDF</button></div>
+    ${list.length?`<div class="scroll"><table class="tt" style="min-width:0;table-layout:auto"><tr><th style="text-align:left">Datum</th><th style="text-align:left">Fortbildung</th><th style="text-align:left">Veranstalter / Ort</th><th>EH</th><th></th></tr>
+    ${list.map(f=>`<tr><td>${dd(f.date)}</td><td><b>${esc(f.title)}</b></td><td>${esc(f.where||"")}</td><td style="text-align:center">${fmtH(parseFloat(f.hours)||0)}</td><td><button class="x" data-del-fobi="${f.id}">✕</button></td></tr>`).join("")}
+    <tr><td></td><td><b>Summe (${list.length} Fortbildungen)</b></td><td></td><td style="text-align:center"><b>${fmtH(sum)}</b></td><td></td></tr></table></div>`
+    :'<p class="empty">Für dieses Schuljahr ist noch nichts eingetragen.</p>'}</div>`;
+}
+function printFobi(){
+  const {yr,list,sum}=fobiSel();
+  const dd=s=>new Date(s+"T00:00").toLocaleDateString("de-DE");
+  document.getElementById("printview").innerHTML=`<h1>Fortbildungen ${yr==="alle"?"(alle Jahre)":"Schuljahr "+esc(yr)}</h1>
+    ${state.fobiName?`<p><b>${esc(state.fobiName)}</b></p>`:""}
+    <p>Stand ${new Date().toLocaleDateString("de-DE")}</p>
+    <table><tr><th>Nr.</th><th>Datum</th><th>Fortbildung</th><th>Veranstalter / Ort</th><th>Dauer (EH)</th></tr>
+    ${list.map((f,i)=>`<tr><td>${i+1}</td><td>${dd(f.date)}</td><td><b>${esc(f.title)}</b></td><td>${esc(f.where||"")}</td><td>${fmtH(parseFloat(f.hours)||0)}</td></tr>`).join("")}
+    <tr><td></td><td></td><td><b>Gesamt</b></td><td></td><td><b>${fmtH(sum)}</b></td></tr></table>`;
+  document.body.classList.add("printing");
+  window.print();
+  document.body.classList.remove("printing");
+}
+
+/* ---------- Notizen ---------- */
+function vNotes(){
+  return `<div class="card"><h2>Notizen</h2>
+    <textarea id="notes" placeholder="Ideen, Unterrichtsplanung, Elterngespräche …">${esc(state.notes)}</textarea></div>`;
+}
+
+/* ---------- Events ---------- */
+function bind(m){
+  m.querySelectorAll("[data-tt]").forEach(i=>i.oninput=()=>{
+    const k=i.dataset.tt; (state.timetable[k]??={})[i.dataset.f]=i.value; save();
+  });
+  m.querySelectorAll("[data-kclass]").forEach(s=>s.onchange=()=>{state.kasseClass=s.value;save();render();});
+  m.querySelectorAll("[data-soll]").forEach(i=>i.oninput=()=>{
+    const c=state.classes.find(x=>x.id===state.kasseClass); if(c){c.soll=parseFloat(i.value)||0;save();}});
+  m.querySelectorAll("[data-sd]").forEach(i=>i.oninput=()=>{
+    const c=state.classes.find(x=>x.id===openClass); const s=c&&c.students.find(x=>x.id===i.dataset.sd);
+    if(s){s[i.dataset.f]=i.value;save();}
+  });
+  m.querySelectorAll("[data-ki]").forEach(i=>i.oninput=()=>{ (state.ki??={})[i.dataset.ki]=i.value.trim(); save(); });
+  if(T.draft){
+    m.querySelectorAll("[data-dr]").forEach(i=>i.oninput=()=>{ T.draft[i.dataset.dr]=i.value; });
+    m.querySelectorAll("[data-tq]").forEach(i=>{
+      const q=T.draft.questions.find(x=>x.id===i.dataset.tq); if(!q) return;
+      if(i.dataset.correct!==undefined) i.onchange=()=>{ q.correct=q.type==="tf"?i.dataset.correct==="true":+i.dataset.correct; };
+      else i.oninput=()=>{ if(i.dataset.opt!==undefined) q.options[+i.dataset.opt]=i.value; else q.q=i.value; };
+    });
+    const tf=m.querySelector("#tfile"); if(tf) tf.onchange=e=>tFile(e.target.files[0]);
+  }
+  const imp=m.querySelector("#imp");
+  if(imp){
+    imp.oninput=()=>importPreview(imp.value);
+    m.querySelector("#impfile").onchange=e=>{
+      const f=e.target.files[0]; if(!f) return;
+      f.arrayBuffer().then(b=>{
+        let t; try{ t=new TextDecoder("utf-8",{fatal:true}).decode(b); }catch(_){ t=new TextDecoder("windows-1252").decode(b); }
+        imp.value=t.replace(/^﻿/,""); importPreview(imp.value);
+      });
+    };
+  }
+  m.querySelectorAll("[data-an]").forEach(i=>i.oninput=()=>{ (state.ansagen??={})[i.dataset.an]=i.value; save(); anResult(); anLimits(); });
+  m.querySelectorAll("[data-an-min]").forEach(i=>i.oninput=()=>{
+    const sc=anScale(), k=+i.dataset.anMin; sc[k].min=Math.min(100,Math.max(0,parseFloat(i.value)||0)); save();
+    m.querySelectorAll("[data-an-fl]").forEach(t=>{ const x=sc[+t.dataset.anFl]; if(+t.dataset.anFl<sc.length-1) t.textContent=pc(100-x.min); });
+    anResult(); anLimits();
+  });
+  m.querySelectorAll("[data-al]").forEach(i=>i.oninput=()=>{
+    const r=(state.ansagen.list||[]).find(x=>x.id===i.dataset.id); if(!r) return;
+    r[i.dataset.al]=i.value; save();
+    const c=document.getElementById("alr-"+r.id); if(c) c.innerHTML=anRow(r);
+  });
+  const alc=m.querySelector("[data-al-class]");
+  if(alc) alc.onchange=()=>{
+    const c=state.classes.find(x=>x.id===alc.value); if(!c) return;
+    const L=state.ansagen.list??=[]; const w=(state.ansagen.w||"");
+    c.students.forEach(st=>{ if(!L.some(r=>r.name.toLowerCase()===st.name.toLowerCase())) L.push({id:uid(),name:st.name,w:w,f:""}); });
+    save(); render();
+  };
+  m.querySelectorAll("[data-fyear]").forEach(i=>i.onchange=()=>{ state.fobiYear=i.value; save(); render(); });
+  m.querySelectorAll("[data-fname]").forEach(i=>i.oninput=()=>{ state.fobiName=i.value; save(); });
+  m.querySelectorAll("[data-nm]").forEach(i=>i.oninput=()=>{ (state.names??={})[i.dataset.nm]=i.value; save(); renderNav(); });
+  anResult(); anLimits();
+  const n=m.querySelector("#notes"); if(n) n.oninput=()=>{state.notes=n.value;save();};
+  m.querySelectorAll("form[data-form]").forEach(f=>f.onsubmit=e=>{
+    e.preventDefault();
+    const d=Object.fromEntries(new FormData(f)); const k=f.dataset.form;
+    if(k==="task") state.tasks.push({id:uid(),text:d.text,due:d.due,prio:d.prio,done:false});
+    if(k==="event") state.events.push({id:uid(),title:d.title,date:d.date,type:d.type});
+    if(k==="kasse"){const a=Math.abs(parseFloat(d.amount))||0;
+      (state.kasse??=[]).push({id:uid(),date:todayIso(),text:d.text,amount:d.type==="out"?-a:a,cid:state.kasseClass||""});}
+    if(k==="zahler"){
+      const c=state.classes.find(x=>x.id===state.kasseClass); if(!c) return;
+      const amt=parseFloat(d.amount)||c.soll||0;
+      if(!amt){ alert("Bitte einen Betrag eingeben oder oben den Beitrag pro Schüler festlegen."); return; }
+      const name=d.name.trim();
+      let s=c.students.find(x=>x.name.toLowerCase()===name.toLowerCase());
+      if(!s){ s={id:uid(),name,grades:[]}; c.students.push(s); }
+      if((state.kasse||[]).some(k=>k.sid===s.id&&k.cid===c.id&&!k.pid)){ alert(s.name+" ist bereits als bezahlt eingetragen."); return; }
+      (state.kasse??=[]).push({id:uid(),date:todayIso(),text:"Einzahlung "+s.name,amount:amt,cid:c.id,sid:s.id});
+    }
+    if(k==="projekt"){
+      const c=state.classes.find(x=>x.id===state.kasseClass); if(!c) return;
+      const pj={id:uid(),cid:c.id,name:d.name.trim(),betrag:Math.abs(parseFloat(d.betrag))||0,frist:d.frist||""};
+      (state.projekte??=[]).push(pj); K.open.add(pj.id);
+    }
+    if(k==="pjexp"){
+      const pj=(state.projekte||[]).find(x=>x.id===f.dataset.pid); if(!pj) return;
+      const a=Math.abs(parseFloat(d.amount))||0;
+      (state.kasse??=[]).push({id:uid(),date:todayIso(),text:pj.name+": "+d.text,amount:-a,cid:pj.cid,pid:pj.id});
+    }
+    if(k==="fobi") (state.fobi??=[]).push({id:uid(),title:d.title.trim(),date:d.date,hours:d.hours,where:(d.where||"").trim()});
+    if(k==="class"){const c={id:uid(),name:d.name,students:[]};state.classes.push(c);openClass=c.id;}
+    if(k==="student") state.classes.find(c=>c.id===openClass).students.push({id:uid(),name:d.name,grades:[]});
+    if(k==="grade"){
+      const s=state.classes.find(c=>c.id===openClass).students.find(s=>s.id===f.dataset.sid);
+      const w=d.gewicht===""?GRADE_TYPES[d.art]:parseFloat(d.gewicht);
+      s.grades.push({id:uid(),title:d.title,value:d.value,fach:d.fach.trim(),art:d.art,gewicht:isNaN(w)?1:w,date:todayIso()});
+    }
+    save(); render();
+  });
+  m.onclick=e=>{
+    const t=e.target, ds=t.dataset; if(!ds) return;
+    const cls=()=>state.classes.find(c=>c.id===openClass);
+    if(ds.toggle){const x=state.tasks.find(x=>x.id===ds.toggle);x.done=t.checked;}
+    else if(ds.delTask) state.tasks=state.tasks.filter(x=>x.id!==ds.delTask);
+    else if(ds.pay){
+      const c=state.classes.find(x=>x.id===state.kasseClass);
+      if(!c) return;
+      if(t.checked){
+        if(!c.soll){ alert("Bitte zuerst den Beitrag pro Schüler eintragen."); t.checked=false; return; }
+        const s=c.students.find(s=>s.id===ds.pay);
+        (state.kasse??=[]).push({id:uid(),date:todayIso(),text:"Einzahlung "+s.name,amount:c.soll,cid:c.id,sid:s.id});
+      } else state.kasse=state.kasse.filter(k=>!(k.sid===ds.pay&&k.cid===c.id&&!k.pid));
+    }
+    else if(ds.doImport){ doImport(document.getElementById("imp").value); return; }
+    else if(ds.print){ printClass(); return; }
+    else if(ds.printGrades){ printGrades(); return; }
+    else if(ds.ta){ tAction(ds.ta,ds); return; }
+    else if(ds.printKasse){ printKasse(); return; }
+    else if(ds.pjPay){
+      const [pid,sid]=ds.pjPay.split("|"); const pj=state.projekte.find(x=>x.id===pid); if(!pj) return;
+      const c=state.classes.find(x=>x.id===pj.cid), st=c&&c.students.find(x=>x.id===sid); if(!st) return;
+      if(t.checked){
+        if(!pj.betrag){ alert("Bitte beim Projekt zuerst einen Betrag festlegen."); t.checked=false; return; }
+        (state.kasse??=[]).push({id:uid(),date:todayIso(),text:pj.name+": "+st.name,amount:pj.betrag,cid:pj.cid,sid:sid,pid:pid});
+      } else state.kasse=state.kasse.filter(k=>!(k.pid===pid&&k.sid===sid));
+    }
+    else if(ds.pjDel){
+      if(!confirm("Projekt samt allen zugehörigen Buchungen löschen?")) return;
+      state.projekte=state.projekte.filter(x=>x.id!==ds.pjDel); state.kasse=state.kasse.filter(k=>k.pid!==ds.pjDel);
+    }
+    else if(ds.pjPrint){ printProjekt(ds.pjPrint); return; }
+    else if(ds.kf) K.f=ds.kf;
+    else if(ds.pf) K.p=ds.pf;
+    else if(ds.gview) state.gView=ds.gview;
+    else if(ds.nmReset){ if(!confirm("Alle Namen auf Standard zurücksetzen?")) return; state.names={}; }
+    else if(ds.printFobi){ printFobi(); return; }
+    else if(ds.delFobi){ if(!confirm("Diese Fortbildung löschen?")) return; state.fobi=state.fobi.filter(f=>f.id!==ds.delFobi); }
+    else if(ds.gsec) state.gSec=ds.gsec;
+    else if(ds.alAdd) (state.ansagen.list??=[]).push({id:uid(),name:"",w:state.ansagen.w||"",f:""});
+    else if(ds.alDel) state.ansagen.list=state.ansagen.list.filter(r=>r.id!==ds.alDel);
+    else if(ds.alClear){ if(!confirm("Ganze Liste leeren?")) return; state.ansagen.list=[]; }
+    else if(ds.anReset){ if(!confirm("Notenschlüssel auf den Vorschlag zurücksetzen?")) return;
+      state.ansagen.scale=AN_DEFAULT().map(([n,g,min])=>({n,g,min})); }
+    else if(ds.cal!==undefined){
+      const n=+ds.cal;
+      if(n===0){ const d=new Date(); cal={y:d.getFullYear(),m:d.getMonth()}; }
+      else { const d=new Date(cal.y,cal.m+n,1); cal={y:d.getFullYear(),m:d.getMonth()}; }
+      render(); return;
+    }
+    else if(ds.delKasse) state.kasse=state.kasse.filter(x=>x.id!==ds.delKasse);
+    else if(ds.delEvent) state.events=state.events.filter(x=>x.id!==ds.delEvent);
+    else if(ds.open) openClass=ds.open;
+    else if(ds.delClass){ if(!confirm("Klasse samt Schülern, Noten und Kassenbuchungen löschen?")) return;
+      state.classes=state.classes.filter(c=>c.id!==ds.delClass); openClass=null;
+      state.kasse=(state.kasse||[]).filter(k=>k.cid!==ds.delClass); state.projekte=(state.projekte||[]).filter(p=>p.cid!==ds.delClass); state.kasseClass=""; }
+    else if(ds.delStudent){ if(!confirm("Schüler löschen?")) return;
+      cls().students=cls().students.filter(s=>s.id!==ds.delStudent); }
+    else if(ds.delGrade){ const [sid,gid]=ds.delGrade.split("|");
+      const s=cls().students.find(s=>s.id===sid); s.grades=s.grades.filter(g=>g.id!==gid); }
+    else return;
+    save(); render();
+  };
+}
+
+/* ---------- Druckansicht ---------- */
+function printClass(){
+  const c=state.classes.find(x=>x.id===openClass); if(!c) return;
+  const d=s=>s?new Date(s+"T00:00").toLocaleDateString("de-DE"):"";
+  const rows=[...c.students].sort((a,b)=>a.name.localeCompare(b.name,"de")).map((s,i)=>`<tr>
+    <td>${i+1}</td><td><b>${esc(s.name)}</b></td><td>${d(s.geburt)}</td><td>${esc(s.religion)}</td>
+    <td>${esc(s.wohnort)}</td><td>${esc(s.eltern)}</td><td>${esc(s.telEltern)}${s.telNotfall?"<br>Notfall: "+esc(s.telNotfall):""}</td>
+    <td>${esc(s.emailEltern)}</td><td>${esc(s.notiz)}</td></tr>`).join("");
+  document.getElementById("printview").innerHTML=`<h1>Klassenliste ${esc(c.name)}</h1>
+    <p>${c.students.length} Schüler · Stand ${new Date().toLocaleDateString("de-DE")}</p>
+    <table><tr><th>#</th><th>Name</th><th>Geburtsdatum</th><th>Religion</th><th>Wohnort</th><th>Eltern</th><th>Telefon</th><th>E-Mail</th><th>Besonderheiten</th></tr>${rows}</table>`;
+  document.body.classList.add("printing");
+  window.print();
+  document.body.classList.remove("printing");
+}
+
+/* ---------- Sicherung ---------- */
+document.getElementById("export").onclick=()=>{
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({...state,ki:undefined},null,2)],{type:"application/json"}));
+  a.download="schulorganizer-sicherung-"+todayIso()+".json"; a.click();
+};
+document.getElementById("import").onclick=()=>document.getElementById("file").click();
+document.getElementById("file").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  f.text().then(t=>{
+    try{ const ki=state.ki; state=Object.assign(EMPTY(),JSON.parse(t)); if(ki) state.ki=ki; save(); render(); }
+    catch(err){ alert("Die Datei konnte nicht gelesen werden."); }
+  });
+};
+
+render();
+</script>
+</body>
+</html>
