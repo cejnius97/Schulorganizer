@@ -1291,7 +1291,36 @@ function szMarkSel(){
   document.querySelectorAll("#szsvg .sz-it").forEach(g=>g.classList.toggle("sel",g.dataset.it===szSel));
   p.items.forEach(szRedraw);
 }
+const szDev=rot=>((((rot||0)+45)%90)+90)%90-45;
+const szLvlText=rot=>{ const d=szDev(rot); return Math.abs(d)<0.05?"✓ gerade (Wasserwaage)":"Wasserwaage: "+(Math.round(d*10)/10).toLocaleString("de-DE")+"° schief"; };
+function szLevelSvg(rot,W){
+  const dev=szDev(rot), ok=Math.abs(dev)<0.05, x=Math.max(-1,Math.min(1,dev/20))*60;
+  const col=ok?"#3fae49":Math.abs(dev)<5?"#f2b53a":"#e5533d";
+  return `<g id="szlevel" pointer-events="none" transform="translate(${W/2} 56)"><rect x="-95" y="-18" width="190" height="36" rx="18" fill="#eaf7c8" stroke="#445" stroke-width="2"/>
+    <line x1="-14" y1="-18" x2="-14" y2="18" stroke="#445" stroke-width="1.6"/><line x1="14" y1="-18" x2="14" y2="18" stroke="#445" stroke-width="1.6"/>
+    <circle cx="${x}" cy="0" r="13" fill="${col}" fill-opacity=".9" stroke="#334" stroke-width="1.5"/>
+    <text y="40" text-anchor="middle" font-size="17" font-weight="700" fill="#222" stroke="#fff" stroke-width="4" paint-order="stroke">${ok?"✓ gerade":(Math.round(Math.abs(dev)*10)/10).toLocaleString("de-DE")+"° schief"}</text></g>`;
+}
+function szBox(it){
+  const r=(((it.rot||0)%180)+180)%180, sw=Math.abs(r-90)<1, bw=sw?it.h:it.w, bh=sw?it.w:it.h, cx=it.x+it.w/2, cy=it.y+it.h/2;
+  return {x:[cx-bw/2,cx,cx+bw/2],y:[cy-bh/2,cy,cy+bh/2]};
+}
+function szGuides(svg,it,others,W,H){
+  const me=szBox(it); let bx=6,by=6,dx=0,dy=0,gx=null,gy=null;
+  others.forEach(o=>{ const q=szBox(o);
+    me.x.forEach(a=>q.x.forEach(b=>{ if(Math.abs(b-a)<bx){ bx=Math.abs(b-a); dx=b-a; gx=b; } }));
+    me.y.forEach(a=>q.y.forEach(b=>{ if(Math.abs(b-a)<by){ by=Math.abs(b-a); dy=b-a; gy=b; } }));
+  });
+  it.x+=dx; it.y+=dy;
+  const old=svg.querySelector("#szguides"); if(old) old.remove();
+  let l="";
+  if(gx!==null) l+=`<line x1="${gx}" y1="0" x2="${gx}" y2="${H}" stroke="#2d8cff" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+  if(gy!==null) l+=`<line x1="0" y1="${gy}" x2="${W}" y2="${gy}" stroke="#2d8cff" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+  if(l) svg.insertAdjacentHTML("beforeend",`<g id="szguides" pointer-events="none">${l}</g>`);
+}
+function szSyncPanelLvl(it){ const lv=document.getElementById("szlvl"); if(lv) lv.textContent=szLvlText(it.rot); }
 function szSyncPanel(it){
+  const lv=document.getElementById("szlvl"); if(lv) lv.textContent=szLvlText(it.rot);
   document.querySelectorAll("#szpanel [data-sz-p]").forEach(i=>{ i.value=Math.round(it[i.dataset.szP]||0); });
 }
 function szPanel(){
@@ -1301,7 +1330,9 @@ function szPanel(){
   return `<h2>${esc(T.n)}</h2>
     <div class="row"><label>Breite (cm)<input type="number" min="10" max="600" data-sz-p="w" value="${it.w}"></label>
       <label>Tiefe (cm)<input type="number" min="10" max="600" data-sz-p="h" value="${it.h}"></label>
-      <label>Drehung (°)<input type="number" step="15" data-sz-p="rot" value="${it.rot||0}"></label></div>
+      <label>Drehung (°)<input type="number" step="5" data-sz-p="rot" value="${it.rot||0}"></label></div>
+    <div class="sub" id="szlvl" style="margin:-4px 0 8px">${szLvlText(it.rot)}</div>
+    <div class="row"><button class="btn ghost" data-sz-level="1" title="auf die nächste gerade Lage drehen (0°, 90°, 180°, 270°)">📐 Gerade ausrichten</button><button class="btn ghost" data-sz-level-all="1" title="alle Felder dieses Plans gerade ausrichten">📐 Alle gerade</button></div>
     <div class="row"><button class="btn ghost" data-sz-rot="-15" title="gegen den Uhrzeigersinn">⟲ 15°</button><button class="btn ghost" data-sz-rot="15" title="im Uhrzeigersinn">⟳ 15°</button>
       <button class="btn ghost" data-sz-rot="-90">⟲ 90°</button><button class="btn ghost" data-sz-rot="90">⟳ 90°</button></div>
     <div class="row"><button class="btn ghost" data-sz-scale="0.9">− kleiner</button><button class="btn ghost" data-sz-scale="1.1">+ größer</button>
@@ -1358,7 +1389,8 @@ function vSitz(){
       <label>Raumbreite (m)<input type="number" step="0.1" min="2" max="30" data-sz-dim="w" value="${p.w}"></label>
       <label>Raumlänge (m)<input type="number" step="0.1" min="2" max="30" data-sz-dim="h" value="${p.h}"></label>
       <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-snap="1" style="width:auto" ${state.szSnap===false?"":"checked"}> beim Verschieben am 10-cm-Raster einrasten</label>
-      <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-kids="1" style="width:auto" ${state.szKids===false?"":"checked"}> Kinder &amp; Lehrkraft zeichnen</label></div>
+      <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-kids="1" style="width:auto" ${state.szKids===false?"":"checked"}> Kinder &amp; Lehrkraft zeichnen</label>
+      <label style="flex:1">Drehgeschwindigkeit<select data-sz-speed="1">${[["1","Normal"],["0.5","Langsam"],["0.25","Sehr langsam"]].map(([v,n])=>`<option value="${v}" ${(state.szRotSpeed||0.5)==+v?"selected":""}>${n}</option>`).join("")}</select></label></div>
     <div class="row">${Object.entries(SZ_TYPES).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
     <div class="row" id="szfont" style="align-items:end">${szFontBar()}</div>
     <svg id="szsvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fff;border:2px solid #555;border-radius:6px;touch-action:none;display:block;user-select:none;-webkit-user-select:none">
@@ -1385,7 +1417,11 @@ function szBindPanel(){
   const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel); const box=document.getElementById("szpanel"); if(!it||!box) return;
   box.querySelectorAll("[data-sz-p]").forEach(i=>i.oninput=()=>{
     const k=i.dataset.szP, v=parseFloat(i.value); if(isNaN(v)) return;
-    it[k]=k==="rot"?v:Math.min(600,Math.max(10,v)); szRedraw(it); save(); });
+    it[k]=k==="rot"?v:Math.min(600,Math.max(10,v)); szRedraw(it); szSyncPanelLvl(it); save(); });
+  box.querySelectorAll("[data-sz-level]").forEach(b=>b.onclick=()=>{
+    it.rot=(((Math.round((it.rot||0)/90)*90)%360)+360)%360; szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-level-all]").forEach(b=>b.onclick=()=>{
+    p.items.forEach(x=>{ x.rot=(((Math.round((x.rot||0)/90)*90)%360)+360)%360; szRedraw(x); }); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-rot]").forEach(b=>b.onclick=()=>{
     it.rot=(((it.rot||0)+(+b.dataset.szRot))%360+360)%360; szRedraw(it); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-scale]").forEach(b=>b.onclick=()=>{
@@ -1428,6 +1464,7 @@ function bindSitz(m){
   const {c,p}=szCtx(); const svg=m.querySelector("#szsvg"); if(!c||!svg) return;
   m.querySelectorAll("[data-sz-dim]").forEach(i=>i.onchange=()=>{
     const k=i.dataset.szDim; p[k]=Math.min(30,Math.max(2,parseFloat(i.value)||p[k])); save(); render(); });
+  const sp=m.querySelector("[data-sz-speed]"); if(sp) sp.onchange=()=>{ state.szRotSpeed=parseFloat(sp.value); save(); };
   const kd=m.querySelector("[data-sz-kids]"); if(kd) kd.onchange=()=>{ state.szKids=kd.checked; save(); render(); };
   const sn=m.querySelector("[data-sz-snap]"); if(sn) sn.onchange=()=>{ state.szSnap=sn.checked; save(); };
   m.querySelectorAll("[data-sz-add]").forEach(b=>b.onclick=()=>{
@@ -1456,6 +1493,7 @@ function bindSitz(m){
     }
     if(hd&&szSel===it.id){
       drag={it,g,mode:hd.dataset.h,cx:it.x+it.w/2,cy:it.y+it.h/2,moved:false};
+      if(drag.mode==="rot"){ const q0=pt(e); drag.last=Math.atan2(q0.y-drag.cy,q0.x-drag.cx)*180/Math.PI; drag.acc=0; drag.startRot=it.rot||0; }
       try{ svg.setPointerCapture(e.pointerId); }catch(_){}
       return;
     }
@@ -1466,9 +1504,14 @@ function bindSitz(m){
   svg.onpointermove=e=>{
     if(!drag) return; const q=pt(e), it=drag.it;
     if(drag.mode==="rot"){
-      let a=Math.atan2(q.y-drag.cy,q.x-drag.cx)*180/Math.PI+90;
-      a=state.szSnap===false?Math.round(a):Math.round(a/15)*15;
-      it.rot=((a%360)+360)%360; drag.moved=true; szRedraw(it); szSyncPanel(it); return;
+      const cur=Math.atan2(q.y-drag.cy,q.x-drag.cx)*180/Math.PI;
+      let dd=cur-drag.last; dd=((dd+540)%360)-180; drag.last=cur; drag.acc+=dd;
+      let a=drag.startRot+drag.acc*(state.szRotSpeed||0.5);
+      const near=Math.round(a/90)*90;
+      if(Math.abs(a-near)<=(state.szSnap===false?5:7)) a=near; else a=state.szSnap===false?Math.round(a):Math.round(a/5)*5;
+      it.rot=((a%360)+360)%360; drag.moved=true; szRedraw(it); szSyncPanel(it);
+      const old=svg.querySelector("#szlevel"); if(old) old.remove();
+      svg.insertAdjacentHTML("beforeend",szLevelSvg(it.rot,p.w*100)); return;
     }
     if(drag.mode==="size"){
       const th=(it.rot||0)*Math.PI/180, dx=q.x-drag.cx, dy=q.y-drag.cy;
@@ -1478,9 +1521,12 @@ function bindSitz(m){
     }
     it.x=Math.min(p.w*100-it.w/2,Math.max(-it.w/2,szSnap(q.x-drag.dx)));
     it.y=Math.min(p.h*100-it.h/2,Math.max(-it.h/2,szSnap(q.y-drag.dy)));
+    if(state.szSnap!==false) szGuides(svg,it,p.items.filter(o=>o!==it),p.w*100,p.h*100);
     drag.g.setAttribute("transform",szTr(it)); drag.moved=true;
   };
-  svg.onpointerup=svg.onpointercancel=()=>{ if(drag&&drag.moved) save(); drag=null; };
+  svg.onpointerup=svg.onpointercancel=()=>{
+    if(drag&&drag.moved) save(); drag=null;
+    svg.querySelectorAll("#szlevel,#szguides").forEach(n=>n.remove()); };
   szBindPanel(); szBindChips(); szBindFont();
 }
 
