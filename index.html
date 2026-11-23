@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="23.11.2026 23:50"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 00:10"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1277,15 +1277,15 @@ function szKids(it){
   if(state.szKids===false) return "";
   const w=it.w,h=it.h,t=it.t,rot=it.rot||0;
   const c=szK(it), q=4*c;
-  /* Name direkt an der Figur (außen davor), beim Drehen des Tisches bleibt er waagerecht lesbar */
+  /* Name auf dem Tisch, direkt vor dem Platz der Figur; beim Drehen des Tisches bleibt er waagerecht lesbar */
   const nm=(it.names||[]).filter(x=>x.trim()).map(szShort);
   const f=it.fs>0?it.fs:Math.max(8,10*c), ff=(SZ_FONTS[it.font||state.szFont||""]||SZ_FONTS[""])[1], col=it.color||"#3b2a12";
   const V={s:[0,1],n:[0,-1],w:[-1,0],e:[1,0]}, ar=rot*Math.PI/180;
   const lab=(x,y,side,k,tch)=>{
     const nmk=!tch&&nm[k]; if(!nmk) return "";
     const v=V[side], ux=v[0]*Math.cos(ar)-v[1]*Math.sin(ar), uy=v[0]*Math.sin(ar)+v[1]*Math.cos(ar);
-    const d=10.5*c+8+Math.abs(ux)*nmk.length*f*0.3+Math.abs(uy)*f*0.55;
-    return `<text transform="translate(${x+v[0]*d} ${y+v[1]*d}) rotate(${-rot})" text-anchor="middle" dy=".35em" font-size="${f}" font-weight="600" fill="${col}"${ff?` font-family="${esc(ff)}"`:""}${it.color?"":' stroke="rgba(255,255,255,.8)" stroke-width="2.5" paint-order="stroke"'}>${esc(nmk)}</text>`;
+    const d=q+10.5*c+4+Math.abs(ux)*nmk.length*f*0.3+Math.abs(uy)*f*0.55;
+    return `<text transform="translate(${x-v[0]*d} ${y-v[1]*d}) rotate(${-rot})" text-anchor="middle" dy=".35em" font-size="${f}" font-weight="600" fill="${col}"${ff?` font-family="${esc(ff)}"`:""}${it.color?"":' stroke="rgba(255,255,255,.8)" stroke-width="2.5" paint-order="stroke"'}>${esc(nmk)}</text>`;
   };
   const K=(x,y,side,k,tch)=>szKid(x,y,side,szGender(it,k),rot,tch,c)+lab(x,y,side,k,tch);
   if(t==="tisch1") return K(w/2,h+q,"s",0);
