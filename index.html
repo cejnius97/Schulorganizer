@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="v3";
+const APP_VERSION="23.11.2026 22:50"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -281,6 +281,18 @@ if(APP) setInterval(()=>fetch("/api/ping").catch(()=>{}), 5000);
 state = load(); sortNames();
 try{ _loadInfo=APP?"":(localStorage.getItem(KEY)?"beim Start Daten gefunden":"beim Start keine Daten gefunden"); }catch(e){ _loadInfo="Speicher nicht lesbar"; }
 addEventListener("DOMContentLoaded",()=>storeInfo(""));
+/* Prüft beim Start, ob auf dem Server eine neuere Version liegt (iPad/Safari hält alte Kopien lange fest) */
+if(!APP && location.protocol.startsWith("http")) addEventListener("load",()=>{
+  fetch(location.pathname,{cache:"no-store"}).then(r=>r.ok?r.text():"").then(t=>{
+    const m=t.match(/const APP_VERSION="([^"]+)"/);
+    if(!m||m[1]===APP_VERSION||document.getElementById("updbar")) return;
+    const bar=document.createElement("div"); bar.id="updbar";
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#2e7d32;color:#fff;padding:12px 14px;font:600 15px system-ui;text-align:center";
+    bar.innerHTML='Neue Version verfügbar ('+m[1]+'). <button style="margin-left:8px;padding:6px 14px;border:0;border-radius:8px;font:inherit">Jetzt aktualisieren</button>';
+    bar.querySelector("button").onclick=()=>{ flushNow(); location.replace(location.pathname+"?v="+Date.now()); };
+    document.body.appendChild(bar);
+  }).catch(()=>{});
+});
 if(!APP&&navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 const uid = () => Math.random().toString(36).slice(2,10);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
