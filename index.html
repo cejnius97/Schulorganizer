@@ -226,8 +226,13 @@ function load(){
   }catch(e){}
   return EMPTY();
 }
+/* Namen immer alphabetisch (A–Z, deutsche Sortierung); leere Namen ans Ende */
+const byName=(a,b)=>(!a.name.trim()-!b.name.trim())||a.name.localeCompare(b.name,"de");
+function sortNames(){
+  (state.classes||[]).forEach(c=>{ if(c.students) c.students.sort(byName); });
+}
 function save(){
-  try{
+  try{ sortNames();
     if(APP){ fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state),keepalive:true}); }
     else{
       const j=JSON.stringify(state);
@@ -256,7 +261,7 @@ function flushNow(){
 addEventListener("pagehide",flushNow);
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flushNow(); });
 if(APP) setInterval(()=>fetch("/api/ping").catch(()=>{}), 5000);
-state = load();
+state = load(); sortNames();
 if(!APP&&navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 const uid = () => Math.random().toString(36).slice(2,10);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1672,12 +1677,13 @@ function bind(m){
     r[i.dataset.al]=i.value; save();
     const c=document.getElementById("alr-"+r.id); if(c) c.innerHTML=anRow(r);
   });
+  m.querySelectorAll('[data-al="name"]').forEach(i=>i.onchange=()=>{ (state.ansagen.list||[]).sort(byName); save(); render(); });
   const alc=m.querySelector("[data-al-class]");
   if(alc) alc.onchange=()=>{
     const c=state.classes.find(x=>x.id===alc.value); if(!c) return;
     const L=state.ansagen.list??=[]; const w=(state.ansagen.w||"");
     c.students.forEach(st=>{ if(!L.some(r=>r.name.toLowerCase()===st.name.toLowerCase())) L.push({id:uid(),name:st.name,w:w,f:""}); });
-    save(); render();
+    L.sort(byName); save(); render();
   };
   m.querySelectorAll("[data-fyear]").forEach(i=>i.onchange=()=>{ state.fobiYear=i.value; save(); render(); });
   m.querySelectorAll("[data-fname]").forEach(i=>i.oninput=()=>{ state.fobiName=i.value; save(); });
