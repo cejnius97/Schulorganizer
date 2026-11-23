@@ -181,6 +181,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
   <button class="x" id="export" title="Sicherung speichern">⬇ Sicherung</button> <span class="sub" id="lastbk"></span>
   <button class="x" id="import" title="Sicherung laden">⬆ Laden</button>
   <input type="file" id="file" accept=".json" hidden>
+  <div class="sub" id="storeinfo" style="margin-top:6px"></div>
 </footer>
 
 <script>
@@ -233,10 +234,13 @@ function save(){
       const j=JSON.stringify(state);
       localStorage.setItem(KEY, j);
       if(localStorage.getItem(KEY)!==j) throw new Error("verify");
-      storageWarn(false);
+      storageWarn(false); storeInfo("gespeichert um "+new Date().toLocaleTimeString("de-DE")+" ("+Math.round(j.length/1024)+" KB)");
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
+const APP_VERSION="v3";
+let _loadInfo="";
+function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
 function storageWarn(on){
   let b=document.getElementById("storewarn");
@@ -257,6 +261,8 @@ addEventListener("pagehide",flushNow);
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flushNow(); });
 if(APP) setInterval(()=>fetch("/api/ping").catch(()=>{}), 5000);
 state = load();
+try{ _loadInfo=APP?"":(localStorage.getItem(KEY)?"beim Start Daten gefunden":"beim Start keine Daten gefunden"); }catch(e){ _loadInfo="Speicher nicht lesbar"; }
+addEventListener("DOMContentLoaded",()=>storeInfo(""));
 if(!APP&&navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 const uid = () => Math.random().toString(36).slice(2,10);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
