@@ -1461,7 +1461,13 @@ function vSitz(){
       <label style="flex:1">Drehgeschwindigkeit<select data-sz-speed="1">${[["1","Normal"],["0.5","Langsam"],["0.25","Sehr langsam"]].map(([v,n])=>`<option value="${v}" ${(state.szRotSpeed||0.5)==+v?"selected":""}>${n}</option>`).join("")}</select></label></div>
     <div class="row">${Object.entries(SZ_TYPES).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
     <div class="row" id="szfont" style="align-items:end">${szFontBar()}</div>
-    <svg id="szsvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fff;border:2px solid #555;border-radius:6px;touch-action:none;display:block;user-select:none;-webkit-user-select:none">
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:6px">
+      <span class="sub">Zoom</span>
+      <button class="btn ghost" data-sz-z="-1" style="padding:6px 12px;font-size:1.1rem;line-height:1" aria-label="Verkleinern">−</button>
+      <b style="min-width:3.2em;text-align:center">${Math.round((state.szZoom||0.5)*100)} %</b>
+      <button class="btn ghost" data-sz-z="1" style="padding:6px 12px;font-size:1.1rem;line-height:1" aria-label="Vergrößern">+</button>
+    </div>
+    <svg id="szsvg" viewBox="0 0 ${W} ${H}" style="width:${Math.round((state.szZoom||0.5)*100)}%;min-width:260px;height:auto;background:#fff;border:2px solid #555;border-radius:6px;touch-action:none;display:block;user-select:none;-webkit-user-select:none">
       <defs>
         <linearGradient id="szwood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1d9a6"/><stop offset="1" stop-color="#dcb878"/></linearGradient>
         <linearGradient id="szglass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cdeaf8"/><stop offset="1" stop-color="#7fc1e6"/></linearGradient>
@@ -1535,6 +1541,9 @@ function bindSitz(m){
   m.querySelectorAll("[data-sz-dim]").forEach(i=>i.onchange=()=>{
     const k=i.dataset.szDim; p[k]=Math.min(30,Math.max(2,parseFloat(i.value)||p[k])); save(); render(); });
   const sp=m.querySelector("[data-sz-speed]"); if(sp) sp.onchange=()=>{ state.szRotSpeed=parseFloat(sp.value); save(); };
+  m.querySelectorAll("[data-sz-z]").forEach(b=>b.onclick=()=>{
+    const z=Math.round(((state.szZoom||0.5)+0.1*(+b.dataset.szZ))*10)/10;
+    state.szZoom=Math.min(1,Math.max(0.3,z)); save(); render(); });
   const gd=m.querySelector("[data-sz-grid]"); if(gd) gd.onchange=()=>{ state.szGrid=gd.checked; save(); render(); };
   const kd=m.querySelector("[data-sz-kids]"); if(kd) kd.onchange=()=>{ state.szKids=kd.checked; save(); render(); };
   const sn=m.querySelector("[data-sz-snap]"); if(sn) sn.onchange=()=>{ state.szSnap=sn.checked; save(); };
