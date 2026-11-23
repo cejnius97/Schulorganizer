@@ -28,6 +28,10 @@ header h1{margin:0;font-size:1.7rem;letter-spacing:.3px;text-shadow:0 1px 3px rg
 header .date{opacity:.92}
 .gear{position:absolute;top:14px;right:18px;z-index:2;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.15);color:#fff;font-size:1.4rem;cursor:pointer;line-height:1;transition:transform .3s}
 .gear:hover{transform:rotate(60deg);background:rgba(0,0,0,.28)}
+.sz-it{filter:drop-shadow(1px 2px 2px rgba(0,0,0,.28))}
+.sz-it.sel .sz-main{stroke:#d62828!important;stroke-width:3.5}
+#szsvg text{pointer-events:none}
+#szsvg [data-h]{touch-action:none}
 .crawl{position:absolute;bottom:2px;left:-50px;width:34px;height:34px;transform:rotate(90deg);
   animation:crawl 38s linear infinite;opacity:.95}
 @keyframes crawl{to{left:calc(100% + 50px)}}
@@ -184,7 +188,7 @@ const DAYS = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
 const PERIODS = 8;
 const TABS = [
   ["home","Übersicht"],["plan","Stundenplan"],["cal","Kalender"],["tasks","Aufgaben"],
-  ["events","Termine"],["kasse","Klassenkasse"],["classes","Klassenliste"],["grades","Noten"],["tests","Schularbeiten"],["fobi","Fortbildungen"],["notes","Notizen"]
+  ["events","Termine"],["kasse","Klassenkasse"],["classes","Klassenliste"],["sitz","Sitzplan"],["grades","Noten"],["tests","Schularbeiten"],["fobi","Fortbildungen"],["notes","Notizen"]
 ];
 const EVENT_TYPES = ["Prüfung","Elternabend","Konferenz","Ausflug","Ferien/Frei","Sonstiges"];
 
@@ -260,7 +264,7 @@ document.getElementById("nav").onclick = e=>{
 function render(){
   renderNav();
   const m=document.getElementById("main");
-  m.innerHTML = ({home:vHome,plan:vPlan,cal:vCal,tasks:vTasks,events:vEvents,kasse:kasseCard,classes:vClasses,grades:vGrades,tests:vTests,fobi:vFobi,notes:vNotes,settings:vSettings})[tab]();
+  m.innerHTML = ({home:vHome,plan:vPlan,cal:vCal,tasks:vTasks,events:vEvents,kasse:kasseCard,classes:vClasses,grades:vGrades,sitz:vSitz,tests:vTests,fobi:vFobi,notes:vNotes,settings:vSettings})[tab]();
   bind(m);
 }
 
@@ -1119,6 +1123,275 @@ function printGrades(){
   document.body.classList.remove("printing");
 }
 
+/* ---------- Sitzplan ---------- */
+const SZ_TYPES={
+  tisch1:{n:"Einzeltisch",ic:"🪑",w:60,h:50,fill:"#fff4cf",seats:1},
+  tisch2:{n:"Doppeltisch",ic:"🪑🪑",w:120,h:50,fill:"#fff4cf",seats:2},
+  gruppe:{n:"Gruppentisch",ic:"👥",w:140,h:140,fill:"#fff4cf",seats:4},
+  lehrer:{n:"Lehrertisch",ic:"👩‍🏫",w:140,h:70,fill:"#cfe8ff",seats:0,label:"Lehrer/in"},
+  tafel:{n:"Tafel",ic:"🟩",w:240,h:15,fill:"#9bbf9b",seats:0,label:"Tafel"},
+  tuer:{n:"Tür",ic:"🚪",w:90,h:12,fill:"#d9a066",seats:0,label:"Tür"},
+  fenster:{n:"Fenster",ic:"🪟",w:120,h:10,fill:"#bfe6f5",seats:0,label:"Fenster"},
+  schrank:{n:"Schrank",ic:"🗄️",w:100,h:40,fill:"#e0d4c4",seats:0,label:"Schrank"},
+  text:{n:"Beschriftung",ic:"🏷️",w:120,h:40,fill:"#f1f1f1",seats:0,label:"Bereich"}
+};
+let szSel=null;
+const SZ_FONTS={"":["Standard",""],arial:["Arial","Arial,Helvetica,sans-serif"],georgia:["Georgia (mit Serifen)","Georgia,serif"],
+  comic:["Comic / Schulschrift","'Comic Sans MS','Chalkboard SE','Marker Felt',cursive"],
+  hand:["Handschrift","'Ink Free','Bradley Hand','Segoe Print','Comic Sans MS',cursive"],
+  kreide:["Kreide","'Chalkboard SE','Chalkduster','Segoe Print','Comic Sans MS',cursive"],
+  filz:["Filzstift","'Marker Felt','Segoe Print','Comic Sans MS',cursive"],
+  spiel:["Verspielt","Noteworthy,'Segoe Print','Comic Sans MS',cursive"],
+  rund:["Rund & freundlich","'Arial Rounded MT Bold','Varela Round','Trebuchet MS',sans-serif"],
+  fibel:["Fibel (klar & gut lesbar)","Verdana,'Trebuchet MS',sans-serif"],
+  script:["Schreibschrift","'Segoe Script','Snell Roundhand','Brush Script MT',cursive"],mono:["Schreibmaschine","'Courier New',monospace"]};
+function szPlan(cid){ const S=state.sitz??={}; return S[cid]??={w:8,h:6,items:[]}; }
+function szCtx(){ const c=state.classes.find(x=>x.id===openClass); return {c,p:c?szPlan(c.id):null}; }
+const szSnap=v=>state.szSnap===false?v:Math.round(v/10)*10;
+const szTr=it=>`translate(${it.x} ${it.y}) rotate(${it.rot||0} ${it.w/2} ${it.h/2})`;
+function szNew(type,x,y){
+  const t=SZ_TYPES[type];
+  return {id:uid(),t:type,x:szSnap(x),y:szSnap(y),w:t.w,h:t.h,rot:0,names:t.label?[t.label]:[]};
+}
+function szHandles(it){
+  return `<g data-h="rot" style="cursor:grab"><line x1="${it.w/2}" y1="0" x2="${it.w/2}" y2="-22" stroke="#d62828" stroke-width="2"/>
+    <circle cx="${it.w/2}" cy="-30" r="13" fill="#d62828"/><text x="${it.w/2}" y="-24" text-anchor="middle" font-size="17" fill="#fff">↻</text></g>
+    <rect data-h="size" x="${it.w-12}" y="${it.h-12}" width="24" height="24" rx="4" fill="#d62828" style="cursor:nwse-resize"/>`;
+}
+function szChair(x,y,w,h,side){
+  const bk={s:[x,y+h-7,w,7],n:[x,y,w,7],w:[x,y,7,h],e:[x+w-7,y,7,h]}[side];
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="#8aa0b8" stroke="#4d5f73" stroke-width="1.2"/>
+    <rect x="${bk[0]}" y="${bk[1]}" width="${bk[2]}" height="${bk[3]}" rx="3" fill="#5d7490"/>`;
+}
+function szShape(it){
+  const w=it.w,h=it.h,t=it.t;
+  const main=(fill,stroke,extra="")=>`<rect class="sz-main" width="${w}" height="${h}" rx="${Math.min(5,h/3)}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" ${extra}/>`;
+  if(t==="tisch1"||t==="tisch2"||t==="gruppe"||t==="lehrer"){
+    let ch="";
+    if(t==="tisch1") ch=szChair((w-34)/2,h-6,34,30,"s");
+    else if(t==="tisch2") ch=szChair(w*0.25-17,h-6,34,30,"s")+szChair(w*0.75-17,h-6,34,30,"s");
+    else if(t==="gruppe") ch=szChair((w-34)/2,h-6,34,30,"s")+szChair((w-34)/2,-24,34,30,"n")+szChair(-24,(h-34)/2,30,34,"w")+szChair(w-6,(h-34)/2,30,34,"e");
+    else ch=szChair((w-40)/2,-24,40,30,"n");
+    const top=main(t==="lehrer"?"url(#szwood2)":"url(#szwood)",t==="lehrer"?"#7c5428":"#9a7338");
+    const hl=`<rect x="3" y="3" width="${Math.max(0,w-6)}" height="${Math.max(0,h-6)}" rx="3" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>`;
+    return ch+top+hl;
+  }
+  if(t==="tafel") return `<rect class="sz-main" width="${w}" height="${h}" rx="2" fill="#8b5a2b" stroke="#5b3a18" stroke-width="1.5"/>
+    <rect x="2.5" y="2.5" width="${Math.max(0,w-5)}" height="${Math.max(0,h-5)}" rx="1" fill="#2f5d46"/>`;
+  if(t==="tuer") return `<path d="M${w} ${h/2} A${w} ${w} 0 0 1 0 ${h/2+w} L0 ${h/2} Z" fill="rgba(168,116,58,.10)" stroke="#a8743a" stroke-width="1.2" stroke-dasharray="5 4" pointer-events="none"/>
+    <line x1="0" y1="${h/2}" x2="0" y2="${h/2+w}" stroke="#a8743a" stroke-width="4" stroke-linecap="round"/>
+    <rect class="sz-main" width="${w}" height="${h}" fill="#a8743a" stroke="#6e4a22" stroke-width="1.5"/>`;
+  if(t==="fenster") return `<rect class="sz-main" width="${w}" height="${h}" rx="2" fill="#d4ecf8" stroke="#6b7f8c" stroke-width="1.5"/>
+    <line x1="${w/2}" y1="0" x2="${w/2}" y2="${h}" stroke="#6b7f8c" stroke-width="1.5"/>`;
+  if(t==="schrank") return `<rect class="sz-main" width="${w}" height="${h}" rx="3" fill="#cdb894" stroke="#8c7656" stroke-width="1.5"/>
+    <line x1="${w/2}" y1="2" x2="${w/2}" y2="${h-2}" stroke="#8c7656" stroke-width="1.5"/>
+    <circle cx="${w/2-6}" cy="${h/2}" r="2.2" fill="#6e5a3c"/><circle cx="${w/2+6}" cy="${h/2}" r="2.2" fill="#6e5a3c"/>`;
+  return `<rect class="sz-main" width="${w}" height="${h}" rx="8" fill="rgba(255,255,255,.55)" stroke="#8a8a8a" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+}
+function szInner(it){
+  const names=(it.names||[]).filter(x=>x.trim());
+  const rot=(((it.rot||0)%360)+360)%360, sw=(rot>=45&&rot<135)||(rot>=225&&rot<315);
+  const aw=sw?it.h:it.w, ah=sw?it.w:it.h, n=Math.max(names.length,1);
+  const maxLen=Math.max(1,...names.map(x=>x.length));
+  const auto=Math.max(5,Math.min(16,ah*0.9/(n*1.2),aw*0.94/(maxLen*0.55)));
+  const f=it.fs>0?it.fs:auto;
+  const tsp=names.map((nm,i)=>`<tspan x="0" dy="${i===0?(-(names.length-1)*f*0.6+f*0.35):f*1.2}">${esc(nm)}</tspan>`).join("");
+  const chalk=it.t==="tafel", col=it.color||(chalk?"#f4f4ea":"#3b2a12"), ff=(SZ_FONTS[it.font]||SZ_FONTS[""])[1];
+  return szShape(it)+`<text transform="translate(${it.w/2} ${it.h/2}) rotate(${-rot})" text-anchor="middle" font-size="${f}" font-weight="600" fill="${col}"${ff?` font-family="${esc(ff)}"`:""}${chalk||it.color?"":' stroke="rgba(255,255,255,.7)" stroke-width="2.5" paint-order="stroke"'}>${tsp}</text>${it.id===szSel?szHandles(it):""}`;
+}
+const szG=it=>`<g class="sz-it${it.id===szSel?" sel":""}" data-it="${it.id}" transform="${szTr(it)}" style="cursor:grab">${szInner(it)}</g>`;
+function szRedraw(it){
+  const g=document.querySelector(`[data-it="${it.id}"]`); if(!g) return;
+  g.innerHTML=szInner(it); g.setAttribute("transform",szTr(it));
+}
+function szMarkSel(){
+  const {p}=szCtx(); if(!p) return;
+  document.querySelectorAll("#szsvg .sz-it").forEach(g=>g.classList.toggle("sel",g.dataset.it===szSel));
+  p.items.forEach(szRedraw);
+}
+function szSyncPanel(it){
+  document.querySelectorAll("#szpanel [data-sz-p]").forEach(i=>{ i.value=Math.round(it[i.dataset.szP]||0); });
+}
+function szPanel(){
+  const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel);
+  if(!it) return `<h2>Bearbeiten</h2><p class="sub">Tippe einen Tisch oder ein Objekt im Plan an. Dann kannst du ihn mit Finger oder Maus verschieben, drehen, in der Größe ändern und Namen eintragen.</p>`;
+  const T=SZ_TYPES[it.t]||SZ_TYPES.text;
+  return `<h2>${esc(T.n)}</h2>
+    <div class="row"><label>Breite (cm)<input type="number" min="10" max="600" data-sz-p="w" value="${it.w}"></label>
+      <label>Tiefe (cm)<input type="number" min="10" max="600" data-sz-p="h" value="${it.h}"></label>
+      <label>Drehung (°)<input type="number" step="15" data-sz-p="rot" value="${it.rot||0}"></label></div>
+    <div class="row"><button class="btn ghost" data-sz-rot="-15" title="gegen den Uhrzeigersinn">⟲ 15°</button><button class="btn ghost" data-sz-rot="15" title="im Uhrzeigersinn">⟳ 15°</button>
+      <button class="btn ghost" data-sz-rot="-90">⟲ 90°</button><button class="btn ghost" data-sz-rot="90">⟳ 90°</button></div>
+    <div class="row"><button class="btn ghost" data-sz-scale="0.9">− kleiner</button><button class="btn ghost" data-sz-scale="1.1">+ größer</button>
+      <button class="btn ghost" data-sz-dup="1">Duplizieren</button><button class="btn ghost" data-sz-del="1">Löschen</button></div>
+    <label>${T.seats?"Namen (ein Name pro Zeile)":"Beschriftung"}<textarea data-sz-names style="min-height:90px">${esc((it.names||[]).join("\n"))}</textarea></label>`;
+}
+function szChips(){
+  const {c,p}=szCtx();
+  const seated=new Set(p.items.flatMap(i=>(i.names||[]).map(n=>n.trim().toLowerCase())).filter(Boolean));
+  const free=c.students.filter(s=>!seated.has(s.name.trim().toLowerCase()));
+  return `<h2>Schüler ohne Platz (${free.length})</h2>
+    <p class="sub">Erst einen Tisch im Plan antippen, dann hier auf einen Namen tippen.</p>
+    <div>${free.map(s=>`<button class="grade" style="border:0;cursor:pointer" data-sz-chip="${esc(s.name)}">${esc(s.name)}</button>`).join("")||'<span class="empty">Alle Schüler haben einen Platz (oder die Klasse hat noch keine Schüler).</span>'}</div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
+      <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
+}
+function szFontBar(){
+  const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel); const d=it?"":" disabled";
+  return `<span class="sub" style="flex:1 1 100%">${it?"Schrift des markierten Feldes:":"Schrift – tippe zuerst ein Feld im Plan an:"}</span>
+    <label style="flex:2">Schriftart<select data-sz-style="font"${d}>${Object.entries(SZ_FONTS).map(([k,v])=>`<option value="${k}" ${it&&(it.font||"")===k?"selected":""} style="font-family:${esc(v[1]||"inherit")}">${v[0]}</option>`).join("")}</select></label>
+    <label>Größe (leer = auto)<input type="number" min="4" max="60" step="1" data-sz-style="fs" value="${it&&it.fs?it.fs:""}" placeholder="auto"${d}></label>
+    <label style="flex:0 0 80px">Farbe<input type="color" data-sz-style="color" value="${(it&&it.color)||(it&&it.t==="tafel"?"#f4f4ea":"#3b2a12")}" style="padding:2px;height:38px"${d}></label>
+    <button class="btn ghost" data-sz-style-reset="1"${d}>Zurücksetzen</button><button class="btn ghost" data-sz-style-all="1"${d}>Für alle Felder</button>`;
+}
+function szBindFont(){
+  const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); const box=document.getElementById("szfont"); if(!it||!box) return;
+  box.querySelectorAll("[data-sz-style]").forEach(i=>{
+    const apply=()=>{ const k=i.dataset.szStyle; it[k]=k==="fs"?(parseFloat(i.value)||0):i.value; szRedraw(it); save(); };
+    i.oninput=apply; i.onchange=apply; });
+  box.querySelectorAll("[data-sz-style-reset]").forEach(b=>b.onclick=()=>{ delete it.font; delete it.fs; delete it.color; szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-style-all]").forEach(b=>b.onclick=()=>{
+    if(!confirm("Schriftart, -größe und -farbe dieses Felds auf alle Felder dieses Plans übertragen?")) return;
+    p.items.forEach(x=>{ x.font=it.font; x.fs=it.fs; x.color=it.color; szRedraw(x); }); save(); });
+}
+function szRefresh(){
+  const a=document.getElementById("szpanel"), b=document.getElementById("szchips"); if(!a||!b) return;
+  a.innerHTML=szPanel(); b.innerHTML=szChips(); szBindPanel(); szBindChips();
+  const fb=document.getElementById("szfont"); if(fb){ fb.innerHTML=szFontBar(); szBindFont(); }
+}
+function vSitz(){
+  if(!openClass&&state.classes.length) openClass=state.classes[0].id;
+  const c=state.classes.find(x=>x.id===openClass);
+  if(!c) return `<div class="card"><h2>${esc(lab("sitz"))}</h2><span class="empty">Lege zuerst unter „Klassenliste“ eine Klasse an.</span></div>`;
+  const p=szPlan(c.id); if(!p.items.some(i=>i.id===szSel)) szSel=null;
+  const W=Math.round(p.w*100), H=Math.round(p.h*100);
+  return `<div class="card"><h2>${esc(lab("sitz"))} – ${esc(c.name)}</h2>
+    <div class="row">${state.classes.map(x=>`<button class="btn ${x.id===openClass?"":"ghost"}" data-open="${x.id}">${esc(x.name)}</button>`).join("")}</div>
+    <div class="row" style="align-items:end">
+      <label>Raumbreite (m)<input type="number" step="0.1" min="2" max="30" data-sz-dim="w" value="${p.w}"></label>
+      <label>Raumlänge (m)<input type="number" step="0.1" min="2" max="30" data-sz-dim="h" value="${p.h}"></label>
+      <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-snap="1" style="width:auto" ${state.szSnap===false?"":"checked"}> beim Verschieben am 10-cm-Raster einrasten</label></div>
+    <div class="row">${Object.entries(SZ_TYPES).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
+    <div class="row" id="szfont" style="align-items:end">${szFontBar()}</div>
+    <svg id="szsvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#fff;border:2px solid #555;border-radius:6px;touch-action:none;display:block;user-select:none;-webkit-user-select:none">
+      <defs>
+        <linearGradient id="szwood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1d9a6"/><stop offset="1" stop-color="#dcb878"/></linearGradient>
+        <linearGradient id="szwood2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8a868"/><stop offset="1" stop-color="#b8844a"/></linearGradient>
+        <pattern id="szfloor" width="100" height="40" patternUnits="userSpaceOnUse"><rect width="100" height="40" fill="#efdcb9"/><path d="M0 0H100M0 20H100M0 0V20M50 20V40" stroke="#d9c299" stroke-width="1" fill="none"/></pattern>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#szfloor)"/>
+      <rect width="${W}" height="${H}" fill="none" stroke="#6f6252" stroke-width="14" pointer-events="none"/>
+      ${p.items.map(szG).join("")}
+      <g pointer-events="none"><line x1="24" y1="${H-22}" x2="124" y2="${H-22}" stroke="#4a4a4a" stroke-width="3"/><line x1="24" y1="${H-28}" x2="24" y2="${H-16}" stroke="#4a4a4a" stroke-width="3"/><line x1="124" y1="${H-28}" x2="124" y2="${H-16}" stroke="#4a4a4a" stroke-width="3"/><text x="74" y="${H-30}" text-anchor="middle" font-size="15" fill="#4a4a4a">1 m</text></g></svg>
+    <p class="sub">Maßstab: Balken unten links = 1 m · Raum ${p.w} × ${p.h} m. Tische mit Finger oder Maus ziehen. Auf dem Plan selbst scrollt die Seite nicht – zum Scrollen neben den Plan tippen.</p></div>
+  <div class="grid"><div class="card" id="szpanel">${szPanel()}</div><div class="card" id="szchips">${szChips()}</div></div>
+  <div class="card"><h2>Tischreihen automatisch anlegen</h2>
+    <p class="sub">Legt Tische gleichmäßig im Raum an (zusätzlich zu den vorhandenen). Danach kannst du jeden Tisch einzeln verschieben.</p>
+    <div class="row" style="align-items:end"><label>Reihen (von vorne nach hinten)<input type="number" min="1" max="12" id="szrows" value="4"></label>
+      <label>Tische pro Reihe<input type="number" min="1" max="12" id="szper" value="3"></label>
+      <label>Tischart<select id="sztype"><option value="tisch2">Doppeltisch</option><option value="tisch1">Einzeltisch</option><option value="gruppe">Gruppentisch</option></select></label>
+      <button class="btn" data-sz-gen="1">Anlegen</button></div></div>`;
+}
+function szBindPanel(){
+  const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel); const box=document.getElementById("szpanel"); if(!it||!box) return;
+  box.querySelectorAll("[data-sz-p]").forEach(i=>i.oninput=()=>{
+    const k=i.dataset.szP, v=parseFloat(i.value); if(isNaN(v)) return;
+    it[k]=k==="rot"?v:Math.min(600,Math.max(10,v)); szRedraw(it); save(); });
+  box.querySelectorAll("[data-sz-rot]").forEach(b=>b.onclick=()=>{
+    it.rot=(((it.rot||0)+(+b.dataset.szRot))%360+360)%360; szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-scale]").forEach(b=>b.onclick=()=>{
+    const f=+b.dataset.szScale; it.w=Math.min(600,Math.max(10,Math.round(it.w*f))); it.h=Math.min(600,Math.max(10,Math.round(it.h*f)));
+    szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-dup]").forEach(b=>b.onclick=()=>{
+    const n={...it,id:uid(),x:it.x+20,y:it.y+20,names:[...(it.names||[])]}; p.items.push(n); szSel=n.id; save(); render(); });
+  box.querySelectorAll("[data-sz-del]").forEach(b=>b.onclick=()=>{
+    p.items=p.items.filter(x=>x.id!==it.id); szSel=null; save(); render(); });
+  const ta=box.querySelector("[data-sz-names]");
+  if(ta) ta.oninput=()=>{ it.names=ta.value.split("\n"); szRedraw(it); save();
+    const ch=document.getElementById("szchips"); if(ch){ ch.innerHTML=szChips(); szBindChips(); } };
+}
+function szBindChips(){
+  const {c,p}=szCtx(); const box=document.getElementById("szchips"); if(!box) return;
+  box.querySelectorAll("[data-sz-chip]").forEach(b=>b.onclick=()=>{
+    const it=p.items.find(x=>x.id===szSel);
+    if(!it){ alert("Bitte zuerst einen Tisch im Plan antippen."); return; }
+    it.names=[...(it.names||[]).filter(x=>x.trim()),b.dataset.szChip]; szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-rand]").forEach(b=>b.onclick=()=>{
+    const seated=new Set(p.items.flatMap(i=>(i.names||[]).map(n=>n.trim().toLowerCase())).filter(Boolean));
+    const free=c.students.map(s=>s.name).filter(n=>!seated.has(n.trim().toLowerCase()));
+    const slots=[]; p.items.forEach(i=>{ const cap=(SZ_TYPES[i.t]||{}).seats||0; const used=(i.names||[]).filter(x=>x.trim()).length;
+      for(let k=used;k<cap;k++) slots.push(i); });
+    for(let k=free.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [free[k],free[j]]=[free[j],free[k]]; }
+    let n=0; free.forEach(name=>{ const it=slots[n++]; if(it) it.names=[...(it.names||[]).filter(x=>x.trim()),name]; });
+    if(free.length>slots.length) alert((free.length-slots.length)+" Schüler fanden keinen freien Platz – bitte Tische hinzufügen.");
+    save(); render(); });
+  box.querySelectorAll("[data-sz-print]").forEach(b=>b.onclick=szPrint);
+  box.querySelectorAll("[data-sz-clear]").forEach(b=>b.onclick=()=>{
+    if(!confirm("Alle Tische und Objekte dieses Plans löschen?")) return; p.items=[]; szSel=null; save(); render(); });
+}
+function szPrint(){
+  const {c,p}=szCtx(); const src=document.getElementById("szsvg"); if(!src) return;
+  const svg=src.cloneNode(true); svg.querySelectorAll(".sel").forEach(g=>g.classList.remove("sel"));
+  svg.setAttribute("style","width:100%;height:auto;border:2px solid #000");
+  document.getElementById("printview").innerHTML=`<h1>Sitzplan ${esc(c.name)}</h1><p>Raum ${p.w} × ${p.h} m · Stand ${new Date().toLocaleDateString("de-DE")}</p>`+svg.outerHTML;
+  document.body.classList.add("printing"); window.print(); document.body.classList.remove("printing");
+}
+function bindSitz(m){
+  const {c,p}=szCtx(); const svg=m.querySelector("#szsvg"); if(!c||!svg) return;
+  m.querySelectorAll("[data-sz-dim]").forEach(i=>i.onchange=()=>{
+    const k=i.dataset.szDim; p[k]=Math.min(30,Math.max(2,parseFloat(i.value)||p[k])); save(); render(); });
+  const sn=m.querySelector("[data-sz-snap]"); if(sn) sn.onchange=()=>{ state.szSnap=sn.checked; save(); };
+  m.querySelectorAll("[data-sz-add]").forEach(b=>b.onclick=()=>{
+    const type=b.dataset.szAdd, t=SZ_TYPES[type], off=(p.items.length%6)*20;
+    const it=szNew(type,p.w*50-t.w/2+off,type==="tafel"?8:p.h*50-t.h/2+off);
+    p.items.push(it); szSel=it.id; save(); render(); });
+  const gen=m.querySelector("[data-sz-gen]");
+  if(gen) gen.onclick=()=>{
+    const rows=Math.max(1,parseInt(m.querySelector("#szrows").value)||1), per=Math.max(1,parseInt(m.querySelector("#szper").value)||1);
+    const type=m.querySelector("#sztype").value, t=SZ_TYPES[type], W=p.w*100, H=p.h*100;
+    const sx=Math.max(t.w+5,(W-80)/per), sy=Math.max(t.h+10,(H-130)/rows);
+    const x0=40+(sx-t.w)/2, y0=90+(sy-t.h)/2;
+    for(let r=0;r<rows;r++) for(let k=0;k<per;k++) p.items.push(szNew(type,x0+k*sx,y0+r*sy));
+    if(sx*per>W-80+1||sy*rows>H-130+1) alert("Die Tische passen nicht ganz in den Raum – bitte Raum vergrößern oder weniger Tische anlegen.");
+    save(); render(); };
+  let drag=null;
+  const pt=e=>{ const q=svg.createSVGPoint(); q.x=e.clientX; q.y=e.clientY; return q.matrixTransform(svg.getScreenCTM().inverse()); };
+  svg.onpointerdown=e=>{
+    const g=e.target.closest("[data-it]");
+    if(!g){ if(szSel){ szSel=null; szMarkSel(); szRefresh(); } return; }
+    const it=p.items.find(x=>x.id===g.dataset.it); if(!it) return;
+    e.preventDefault();
+    const hd=e.target.closest("[data-h]");
+    if(hd&&szSel===it.id){
+      drag={it,g,mode:hd.dataset.h,cx:it.x+it.w/2,cy:it.y+it.h/2,moved:false};
+      try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+      return;
+    }
+    if(szSel!==it.id){ szSel=it.id; szMarkSel(); szRefresh(); }
+    const q=pt(e); drag={it,g,dx:q.x-it.x,dy:q.y-it.y,moved:false};
+    try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+  };
+  svg.onpointermove=e=>{
+    if(!drag) return; const q=pt(e), it=drag.it;
+    if(drag.mode==="rot"){
+      let a=Math.atan2(q.y-drag.cy,q.x-drag.cx)*180/Math.PI+90;
+      a=state.szSnap===false?Math.round(a):Math.round(a/15)*15;
+      it.rot=((a%360)+360)%360; drag.moved=true; szRedraw(it); szSyncPanel(it); return;
+    }
+    if(drag.mode==="size"){
+      const th=(it.rot||0)*Math.PI/180, dx=q.x-drag.cx, dy=q.y-drag.cy;
+      const lx=dx*Math.cos(th)+dy*Math.sin(th), ly=-dx*Math.sin(th)+dy*Math.cos(th);
+      it.w=Math.min(600,Math.max(10,szSnap(Math.abs(lx)*2))); it.h=Math.min(600,Math.max(10,szSnap(Math.abs(ly)*2)));
+      it.x=drag.cx-it.w/2; it.y=drag.cy-it.h/2; drag.moved=true; szRedraw(it); szSyncPanel(it); return;
+    }
+    it.x=Math.min(p.w*100-it.w/2,Math.max(-it.w/2,szSnap(q.x-drag.dx)));
+    it.y=Math.min(p.h*100-it.h/2,Math.max(-it.h/2,szSnap(q.y-drag.dy)));
+    drag.g.setAttribute("transform",szTr(it)); drag.moved=true;
+  };
+  svg.onpointerup=svg.onpointercancel=()=>{ if(drag&&drag.moved) save(); drag=null; };
+  szBindPanel(); szBindChips(); szBindFont();
+}
+
 /* ---------- Fortbildungen ---------- */
 const schuljahr=d=>{ const y=+d.slice(0,4), m=+d.slice(5,7); const a=m>=9?y:y-1; return a+"/"+String(a+1).slice(2); };
 const fmtH=h=>(Math.round(h*100)/100).toLocaleString("de-DE");
@@ -1226,6 +1499,7 @@ function bind(m){
   m.querySelectorAll("[data-fyear]").forEach(i=>i.onchange=()=>{ state.fobiYear=i.value; save(); render(); });
   m.querySelectorAll("[data-fname]").forEach(i=>i.oninput=()=>{ state.fobiName=i.value; save(); });
   m.querySelectorAll("[data-nm]").forEach(i=>i.oninput=()=>{ (state.names??={})[i.dataset.nm]=i.value; save(); renderNav(); });
+  if(tab==="sitz") bindSitz(m);
   anResult(); anLimits();
   const n=m.querySelector("#notes"); if(n) n.oninput=()=>{state.notes=n.value;save();};
   m.querySelectorAll("form[data-form]").forEach(f=>f.onsubmit=e=>{
@@ -1317,9 +1591,9 @@ function bind(m){
     }
     else if(ds.delKasse) state.kasse=state.kasse.filter(x=>x.id!==ds.delKasse);
     else if(ds.delEvent) state.events=state.events.filter(x=>x.id!==ds.delEvent);
-    else if(ds.open) openClass=ds.open;
+    else if(ds.open){ openClass=ds.open; szSel=null; }
     else if(ds.delClass){ if(!confirm("Klasse samt Schülern, Noten und Kassenbuchungen löschen?")) return;
-      state.classes=state.classes.filter(c=>c.id!==ds.delClass); openClass=null;
+      state.classes=state.classes.filter(c=>c.id!==ds.delClass); openClass=null; if(state.sitz) delete state.sitz[ds.delClass];
       state.kasse=(state.kasse||[]).filter(k=>k.cid!==ds.delClass); state.projekte=(state.projekte||[]).filter(p=>p.cid!==ds.delClass); state.kasseClass=""; }
     else if(ds.delStudent){ if(!confirm("Schüler löschen?")) return;
       cls().students=cls().students.filter(s=>s.id!==ds.delStudent); }
