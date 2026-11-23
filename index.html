@@ -247,8 +247,12 @@ function storageWarn(on){
 }
 if(!APP) addEventListener("DOMContentLoaded",()=>{ if(location.protocol==="file:") storageWarn(true); });
 /* iPad/Safari: beim Wechseln der App oder Schließen nochmals speichern */
-addEventListener("pagehide",()=>{ if(!APP && typeof state==="object" && state) save(); });
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && !APP && typeof state==="object" && state) save(); });
+function flushNow(){
+  try{ const a=document.activeElement; if(a && a!==document.body && a.blur) a.blur(); }catch(e){} /* löst "change" des offenen Feldes aus */
+  if(!APP && typeof state==="object" && state) save();
+}
+addEventListener("pagehide",flushNow);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flushNow(); });
 if(APP) setInterval(()=>fetch("/api/ping").catch(()=>{}), 5000);
 state = load();
 if(!APP&&navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
