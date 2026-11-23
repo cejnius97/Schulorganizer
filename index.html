@@ -1400,6 +1400,22 @@ function szRefresh(){
   a.innerHTML=szPanel(); b.innerHTML=szChips(); szBindPanel(); szBindChips();
   const fb=document.getElementById("szfont"); if(fb){ fb.innerHTML=szFontBar(); szBindFont(); }
 }
+/* Meter-Raster: 1 Einheit = 1 cm; Linien alle 1 m, Beschriftung am oberen und linken Rand */
+function szGrid(w,h){
+  if(state.szGrid===false) return "";
+  let o='<g pointer-events="none" stroke="#6f6252" stroke-opacity=".35" stroke-width="1.5">';
+  for(let x=1;x<w;x++) o+=`<line x1="${x*100}" y1="0" x2="${x*100}" y2="${h*100}"/>`;
+  for(let y=1;y<h;y++) o+=`<line x1="0" y1="${y*100}" x2="${w*100}" y2="${y*100}"/>`;
+  return o+"</g>";
+}
+function szGridLabels(w,h){
+  if(state.szGrid===false) return "";
+  const t=(x,y,txt,anc)=>`<text x="${x}" y="${y}" text-anchor="${anc}" font-size="15" font-weight="700" fill="#4a3d2a" stroke="#fff" stroke-width="4" paint-order="stroke">${txt}</text>`;
+  let o='<g pointer-events="none">';
+  for(let x=1;x<w;x++) o+=t(x*100,32,x+" m","middle");
+  for(let y=1;y<h;y++) o+=t(22,y*100+5,y+" m","middle");
+  return o+"</g>";
+}
 function vSitz(){
   if(!openClass&&state.classes.length) openClass=state.classes[0].id;
   const c=state.classes.find(x=>x.id===openClass);
@@ -1412,6 +1428,7 @@ function vSitz(){
       <label>Raumbreite (m)<input type="number" step="0.1" min="2" max="30" data-sz-dim="w" value="${p.w}"></label>
       <label>Raumlänge (m)<input type="number" step="0.1" min="2" max="30" data-sz-dim="h" value="${p.h}"></label>
       <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-snap="1" style="width:auto" ${state.szSnap===false?"":"checked"}> beim Verschieben am 10-cm-Raster einrasten</label>
+      <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-grid="1" style="width:auto" ${state.szGrid===false?"":"checked"}> Meter-Raster anzeigen</label>
       <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-kids="1" style="width:auto" ${state.szKids===false?"":"checked"}> Kinder &amp; Lehrkraft zeichnen</label>
       <label style="flex:1">Drehgeschwindigkeit<select data-sz-speed="1">${[["1","Normal"],["0.5","Langsam"],["0.25","Sehr langsam"]].map(([v,n])=>`<option value="${v}" ${(state.szRotSpeed||0.5)==+v?"selected":""}>${n}</option>`).join("")}</select></label></div>
     <div class="row">${Object.entries(SZ_TYPES).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
@@ -1425,7 +1442,9 @@ function vSitz(){
       </defs>
       <rect width="${W}" height="${H}" fill="url(#szfloor)"/>
       <rect width="${W}" height="${H}" fill="none" stroke="#6f6252" stroke-width="14" pointer-events="none"/>
+      ${szGrid(p.w,p.h)}
       ${p.items.map(szG).join("")}
+      ${szGridLabels(p.w,p.h)}
       <g pointer-events="none"><line x1="24" y1="${H-22}" x2="124" y2="${H-22}" stroke="#4a4a4a" stroke-width="3"/><line x1="24" y1="${H-28}" x2="24" y2="${H-16}" stroke="#4a4a4a" stroke-width="3"/><line x1="124" y1="${H-28}" x2="124" y2="${H-16}" stroke="#4a4a4a" stroke-width="3"/><text x="74" y="${H-30}" text-anchor="middle" font-size="15" fill="#4a4a4a">1 m</text></g></svg>
     <p class="sub">Maßstab: Balken unten links = 1 m · Raum ${p.w} × ${p.h} m. Tische mit Finger oder Maus ziehen. Auf dem Plan selbst scrollt die Seite nicht – zum Scrollen neben den Plan tippen.</p></div>
   <div class="grid"><div class="card" id="szpanel">${szPanel()}</div><div class="card" id="szchips">${szChips()}</div></div>
@@ -1488,6 +1507,7 @@ function bindSitz(m){
   m.querySelectorAll("[data-sz-dim]").forEach(i=>i.onchange=()=>{
     const k=i.dataset.szDim; p[k]=Math.min(30,Math.max(2,parseFloat(i.value)||p[k])); save(); render(); });
   const sp=m.querySelector("[data-sz-speed]"); if(sp) sp.onchange=()=>{ state.szRotSpeed=parseFloat(sp.value); save(); };
+  const gd=m.querySelector("[data-sz-grid]"); if(gd) gd.onchange=()=>{ state.szGrid=gd.checked; save(); render(); };
   const kd=m.querySelector("[data-sz-kids]"); if(kd) kd.onchange=()=>{ state.szKids=kd.checked; save(); render(); };
   const sn=m.querySelector("[data-sz-snap]"); if(sn) sn.onchange=()=>{ state.szSnap=sn.checked; save(); };
   m.querySelectorAll("[data-sz-add]").forEach(b=>b.onclick=()=>{
