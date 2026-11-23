@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="23.11.2026 22:50"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="23.11.2026 23:10"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -620,11 +620,12 @@ function vClasses(){
         </div>
         <div id="impprev" class="sub"></div>
       </div></details>
-    <form class="row" data-form="student"><input name="vn" placeholder="Vorname" style="flex:2"><input name="nn" placeholder="Nachname" required style="flex:2"><button class="btn">Schüler hinzufügen</button></form>
+    <form class="row" data-form="student"><input name="vn" placeholder="Vorname" style="flex:2"><input name="nn" placeholder="Nachname" required style="flex:2"><select name="sex" style="flex:1"><option value="">Geschlecht</option><option value="junge">Junge</option><option value="maedchen">Mädchen</option><option value="divers">Divers</option></select><button class="btn">Schüler hinzufügen</button></form>
     ${c.students.map(s=>`<div class="student">
       <div class="row" style="margin:0 0 6px;align-items:center">
         <input data-sn="vn" data-id="${s.id}" value="${esc(nameParts(s).vn)}" placeholder="Vorname" style="flex:2;font-weight:700">
         <input data-sn="nn" data-id="${s.id}" value="${esc(nameParts(s).nn)}" placeholder="Nachname" style="flex:2;font-weight:700">
+        <select data-sx data-id="${s.id}" style="flex:1" aria-label="Geschlecht">${SEX_OPTS.map(([v,l])=>`<option value="${v}" ${(s.sex||"")===v?"selected":""}>${l}</option>`).join("")}</select>
         <button class="x" data-del-student="${s.id}" style="flex:0">✕</button></div>
       <details style="margin-bottom:6px" ${sdOpen.has(s.id)?"open":""} ontoggle="this.open?sdOpen.add('${s.id}'):sdOpen.delete('${s.id}')">
         <summary class="sub">📋 Details${s.telEltern?" · 📞 "+esc(s.telEltern):""}${s.geburt?" · 🎂 "+fmt(s.geburt):""}</summary>
@@ -1243,7 +1244,14 @@ function szChair(x,y,w,h,side,c=1){
     <rect x="${bk[0]}" y="${bk[1]}" width="${bk[2]}" height="${bk[3]}" rx="${3*c}" fill="#5d7490"/>`;
 }
 function szSeed(it){ let n=0; for(const ch of String(it.id)) n+=ch.charCodeAt(0); return n; }
-function szGender(it,k){ return (it.g&&it.g[k])||((szSeed(it)+k)%2?"m":"j"); }
+const SEX_OPTS=[["","Geschlecht"],["junge","Junge"],["maedchen","Mädchen"],["divers","Divers"]];
+const SEX_ICON={junge:"👦",maedchen:"👧",divers:"🧒"};
+function szStudent(name){ try{ const {c}=szCtx(); const n=String(name||"").trim().toLowerCase(); return n&&c?c.students.find(s=>s.name.trim().toLowerCase()===n):null; }catch(e){ return null; } }
+/* Figur am Platz: zuerst das Geschlecht des Schülers (Klassenliste), sonst die Wahl im Sitzplan, sonst abwechselnd */
+function szGender(it,k){
+  const st=szStudent((it.names||[]).filter(x=>x.trim())[k]);
+  if(st&&st.sex==="junge") return "j"; if(st&&st.sex==="maedchen") return "m";
+  return (it.g&&it.g[k])||((szSeed(it)+k)%2?"m":"j"); }
 function szKid(hx,hy,side,g,rot,teacher,k=1){
   const a={s:0,n:180,w:90,e:-90}[side], skin="#f6d2b0", ln="rgba(0,0,0,.3)", T=!!teacher;
   const sh=T?"#2f9e8f":g==="m"?"#ef7fb1":"#3d8be5", hair=T?"#6b3e1f":g==="m"?"#7a4a22":"#5a3a1e";
@@ -1409,7 +1417,7 @@ function szChips(){
   const free=c.students.filter(s=>!seated.has(s.name.trim().toLowerCase()));
   return `<h2>Schüler ohne Platz (${free.length})</h2>
     <p class="sub">Erst einen Tisch im Plan antippen, dann hier auf einen Namen tippen.</p>
-    <div>${free.map(s=>`<button class="grade" style="border:0;cursor:pointer" data-sz-chip="${esc(s.name)}">${esc(s.name)}</button>`).join("")||'<span class="empty">Alle Schüler haben einen Platz (oder die Klasse hat noch keine Schüler).</span>'}</div>
+    <div>${free.map(s=>`<button class="grade" style="border:0;cursor:pointer" data-sz-chip="${esc(s.name)}">${SEX_ICON[s.sex]?SEX_ICON[s.sex]+" ":""}${esc(s.name)}</button>`).join("")||'<span class="empty">Alle Schüler haben einen Platz (oder die Klasse hat noch keine Schüler).</span>'}</div>
     <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
       <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
 }
@@ -1683,6 +1691,9 @@ function bind(m){
   m.querySelectorAll("[data-kclass]").forEach(s=>s.onchange=()=>{state.kasseClass=s.value;save();render();});
   m.querySelectorAll("[data-soll]").forEach(i=>i.oninput=()=>{
     const c=state.classes.find(x=>x.id===state.kasseClass); if(c){c.soll=parseFloat(i.value)||0;save();}});
+  m.querySelectorAll("[data-sx]").forEach(i=>i.onchange=()=>{
+    const c=state.classes.find(x=>x.id===openClass); const st=c&&c.students.find(x=>x.id===i.dataset.id);
+    if(st){ st.sex=i.value; save(); } });
   m.querySelectorAll("[data-sn]").forEach(i=>{
     const find=()=>{ const c=state.classes.find(x=>x.id===openClass); return c&&c.students.find(x=>x.id===i.dataset.id); };
     i.oninput=()=>{ const st=find(); if(!st) return; st[i.dataset.sn]=i.value.trim(); st.name=fullName(st.vn,st.nn); save(); };
@@ -1767,7 +1778,7 @@ function bind(m){
     }
     if(k==="fobi") (state.fobi??=[]).push({id:uid(),title:d.title.trim(),date:d.date,hours:d.hours,where:(d.where||"").trim()});
     if(k==="class"){const c={id:uid(),name:d.name,students:[]};state.classes.push(c);openClass=c.id;}
-    if(k==="student") state.classes.find(c=>c.id===openClass).students.push({id:uid(),vn:d.vn.trim(),nn:d.nn.trim(),name:fullName(d.vn,d.nn),grades:[]});
+    if(k==="student") state.classes.find(c=>c.id===openClass).students.push({id:uid(),vn:d.vn.trim(),nn:d.nn.trim(),name:fullName(d.vn,d.nn),sex:d.sex||"",grades:[]});
     if(k==="grade"){
       const s=state.classes.find(c=>c.id===openClass).students.find(s=>s.id===f.dataset.sid);
       const w=d.gewicht===""?GRADE_TYPES[d.art]:parseFloat(d.gewicht);
