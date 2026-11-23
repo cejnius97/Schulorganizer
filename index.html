@@ -227,9 +227,22 @@ function load(){
   return EMPTY();
 }
 /* Namen immer alphabetisch (A–Z, deutsche Sortierung); leere Namen ans Ende */
-const byName=(a,b)=>(!a.name.trim()-!b.name.trim())||a.name.localeCompare(b.name,"de");
+/* Name aufteilen: "Max Muster" / "Max Peter Muster" -> Vorname = alles vor dem letzten Wort; "Muster, Max" wird ebenfalls erkannt */
+function splitName(n){
+  n=(n||"").trim().replace(/\s+/g," ");
+  const k=n.indexOf(","); if(k>0) return {vn:n.slice(k+1).trim(),nn:n.slice(0,k).trim()};
+  const i=n.lastIndexOf(" "); return i<0?{vn:"",nn:n}:{vn:n.slice(0,i),nn:n.slice(i+1)};
+}
+const fullName=(vn,nn)=>[(vn||"").trim(),(nn||"").trim()].filter(Boolean).join(" ");
+const nameParts=o=>(o.vn!==undefined||o.nn!==undefined)?{vn:o.vn||"",nn:o.nn||""}:splitName(o.name);
+const byName=(a,b)=>{
+  const A=nameParts(a),B=nameParts(b), ea=!(a.name||"").trim(), eb=!(b.name||"").trim();
+  return (ea-eb)||A.nn.localeCompare(B.nn,"de")||A.vn.localeCompare(B.vn,"de");
+};
 function sortNames(){
-  (state.classes||[]).forEach(c=>{ if(c.students) c.students.sort(byName); });
+  (state.classes||[]).forEach(c=>{ if(!c.students) return;
+    c.students.forEach(s=>{ if(s.vn===undefined&&s.nn===undefined) Object.assign(s,splitName(s.name)); });
+    c.students.sort(byName); });
 }
 function save(){
   try{ sortNames();
@@ -589,10 +602,11 @@ function vClasses(){
         </div>
         <div id="impprev" class="sub"></div>
       </div></details>
-    <form class="row" data-form="student"><input name="name" placeholder="Schülername" required style="flex:3"><button class="btn">Schüler hinzufügen</button></form>
+    <form class="row" data-form="student"><input name="vn" placeholder="Vorname" style="flex:2"><input name="nn" placeholder="Nachname" required style="flex:2"><button class="btn">Schüler hinzufügen</button></form>
     ${c.students.map(s=>`<div class="student">
       <div class="row" style="margin:0 0 6px;align-items:center">
-        <b style="flex:2">${esc(s.name)}</b>
+        <input data-sn="vn" data-id="${s.id}" value="${esc(nameParts(s).vn)}" placeholder="Vorname" style="flex:2;font-weight:700">
+        <input data-sn="nn" data-id="${s.id}" value="${esc(nameParts(s).nn)}" placeholder="Nachname" style="flex:2;font-weight:700">
         <button class="x" data-del-student="${s.id}" style="flex:0">✕</button></div>
       <details style="margin-bottom:6px" ${sdOpen.has(s.id)?"open":""} ontoggle="this.open?sdOpen.add('${s.id}'):sdOpen.delete('${s.id}')">
         <summary class="sub">📋 Details${s.telEltern?" · 📞 "+esc(s.telEltern):""}${s.geburt?" · 🎂 "+fmt(s.geburt):""}</summary>
@@ -1008,7 +1022,8 @@ function parseStudents(text){
       if(k==="geburt") o.geburt=parseDate(r[i]);
       else o[k]=o[k]?o[k]+", "+r[i]:r[i];
     });
-    const name=o.name||[o.vorname,o.nachname].filter(Boolean).join(" ");
+    if(o.vorname||o.nachname){ o.vn=(o.vorname||"").trim(); o.nn=(o.nachname||"").trim(); } else if(o.name) Object.assign(o,splitName(o.name));
+    const name=fullName(o.vn,o.nn)||o.name;
     if(!name) return;
     o.name=name; delete o.vorname; delete o.nachname;
     list.push(o);
@@ -1032,7 +1047,7 @@ function doImport(text){
   let add=0,upd=0;
   list.forEach(o=>{
     let s=c.students.find(x=>x.name.toLowerCase()===o.name.toLowerCase());
-    if(!s){ s={id:uid(),name:o.name,grades:[]}; c.students.push(s); add++; } else upd++;
+    if(!s){ s={id:uid(),name:o.name,vn:o.vn||"",nn:o.nn||"",grades:[]}; c.students.push(s); add++; } else upd++;
     SFIELDS.forEach(([f])=>{ if(o[f]&&!s[f]) s[f]=o[f]; });
   });
   save(); render();
@@ -1641,6 +1656,11 @@ function bind(m){
   m.querySelectorAll("[data-kclass]").forEach(s=>s.onchange=()=>{state.kasseClass=s.value;save();render();});
   m.querySelectorAll("[data-soll]").forEach(i=>i.oninput=()=>{
     const c=state.classes.find(x=>x.id===state.kasseClass); if(c){c.soll=parseFloat(i.value)||0;save();}});
+  m.querySelectorAll("[data-sn]").forEach(i=>{
+    const find=()=>{ const c=state.classes.find(x=>x.id===openClass); return c&&c.students.find(x=>x.id===i.dataset.id); };
+    i.oninput=()=>{ const st=find(); if(!st) return; st[i.dataset.sn]=i.value.trim(); st.name=fullName(st.vn,st.nn); save(); };
+    i.onchange=()=>{ const st=find(); if(st&&!st.name.trim()) alert("Der Name darf nicht leer sein."); render(); };
+  });
   m.querySelectorAll("[data-sd]").forEach(i=>i.oninput=()=>{
     const c=state.classes.find(x=>x.id===openClass); const s=c&&c.students.find(x=>x.id===i.dataset.sd);
     if(s){s[i.dataset.f]=i.value;save();}
@@ -1720,7 +1740,7 @@ function bind(m){
     }
     if(k==="fobi") (state.fobi??=[]).push({id:uid(),title:d.title.trim(),date:d.date,hours:d.hours,where:(d.where||"").trim()});
     if(k==="class"){const c={id:uid(),name:d.name,students:[]};state.classes.push(c);openClass=c.id;}
-    if(k==="student") state.classes.find(c=>c.id===openClass).students.push({id:uid(),name:d.name,grades:[]});
+    if(k==="student") state.classes.find(c=>c.id===openClass).students.push({id:uid(),vn:d.vn.trim(),nn:d.nn.trim(),name:fullName(d.vn,d.nn),grades:[]});
     if(k==="grade"){
       const s=state.classes.find(c=>c.id===openClass).students.find(s=>s.id===f.dataset.sid);
       const w=d.gewicht===""?GRADE_TYPES[d.art]:parseFloat(d.gewicht);
