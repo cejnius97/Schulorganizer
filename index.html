@@ -210,7 +210,9 @@ const SFIELDS = [
 
 /* Im Programm (http://127.0.0.1) wird in einer Datei gespeichert,
    sonst (Datei direkt im Browser geöffnet) im Browser-Speicher. */
-const APP = location.protocol.startsWith("http");
+/* Nur wenn der Python-Server wirklich antwortet, gilt der Programm-Modus. Auf GitHub Pages (https) gibt es ihn nicht -> Browser-Speicher. */
+const APP = (()=>{ if(!location.protocol.startsWith("http")) return false;
+  try{ const x=new XMLHttpRequest(); x.open("GET","/api/ping",false); x.send(); return x.status===200 && x.responseText.trim()==="{}"; }catch(e){ return false; } })();
 const EMPTY = () => ({timetable:{},tasks:[],events:[],classes:[],notes:"",kasse:[],tests:[],projekte:[]});
 function load(){
   try{
