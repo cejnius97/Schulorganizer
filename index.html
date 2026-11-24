@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:51"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:57"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1207,6 +1207,8 @@ const SZ_TYPES={
   tafel:{n:"Tafel",ic:"🟩",w:240,h:15,fill:"#9bbf9b",seats:0,label:"Tafel"},
   teppich_rund:{n:"Teppich rund",ic:"⭕",w:200,h:200,fill:"#d9776a",seats:0},
   teppich_eckig:{n:"Teppich eckig",ic:"🟥",w:240,h:160,fill:"#d9776a",seats:0},
+  sofa:{n:"Sofa",ic:"🛋️",w:180,h:80,fill:"#6b8fbf",seats:0},
+  waschbecken:{n:"Waschbecken",ic:"🚰",w:80,h:60,fill:"#b9c4cc",seats:0},
   tuer:{n:"Tür",ic:"🚪",w:90,h:12,fill:"#d9a066",seats:0,label:"Tür"},
   fenster:{n:"Fenster",ic:"🪟",w:120,h:14,fill:"#bfe6f5",seats:0},
   kommode:{n:"Schubladenkasten",ic:"🗃️",w:90,h:40,fill:"#e0d4c4",seats:0,label:"Laden"},
@@ -1343,7 +1345,13 @@ function szKids(it){
   }).join("");
 }
 /* Standardfarben der Gegenstände (für die Farbauswahl) */
-const SZ_DEF_FILL={tisch1:"#e3c48c",tisch2:"#e3c48c",gruppe:"#e3c48c",lehrer:"#c99a5e",tafel:"#2f5d46",tuer:"#a8743a",fenster:"#fbfbf8",schrank:"#d9c7a3",kommode:"#d9c7a3",pflanze:"#4fa04b",blumen:"#ff7aa8",text:"#f1f1f1",teppich_rund:"#d9776a",teppich_eckig:"#d9776a"};
+const SZ_DEF_FILL={tisch1:"#e3c48c",tisch2:"#e3c48c",gruppe:"#e3c48c",lehrer:"#c99a5e",tafel:"#2f5d46",tuer:"#a8743a",fenster:"#fbfbf8",schrank:"#d9c7a3",kommode:"#d9c7a3",pflanze:"#4fa04b",blumen:"#ff7aa8",text:"#f1f1f1",teppich_rund:"#d9776a",teppich_eckig:"#d9776a",sofa:"#6b8fbf",waschbecken:"#b9c4cc"};
+/* Farbe heller (f>0) oder dunkler (f<0) machen */
+function szShade(hex,f){
+  const m=/^#?([0-9a-f]{6})$/i.exec(hex||""); if(!m) return hex;
+  const n=parseInt(m[1],16);
+  return "#"+[(n>>16)&255,(n>>8)&255,n&255].map(v=>Math.round(f<0?v*(1+f):v+(255-v)*f).toString(16).padStart(2,"0")).join("");
+}
 function szShape(it){
   const w=it.w,h=it.h,t=it.t, F=def=>it.fill||def;
   const main=(fill,stroke,extra="")=>`<rect class="sz-main" width="${w}" height="${h}" rx="${Math.min(5,h/3)}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" ${extra}/>`;
@@ -1370,6 +1378,38 @@ function szShape(it){
     return fr+shape(0,0,w,h,`class="sz-main" fill="${col}" stroke="${ln}" stroke-width="1.5"`)
       +shape(i1,i1,w-2*i1,h-2*i1,`fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-dasharray="7 5" pointer-events="none"`)
       +shape(i2,i2,w-2*i2,h-2*i2,`fill="rgba(255,255,255,.16)" stroke="none" pointer-events="none"`);
+  }
+  if(t==="sofa"){   /* leicht schräg von vorn: Rückenlehne, Armlehnen, Sitzkissen, Vorderkante, Füße */
+    const col=F("#6b8fbf"), dk=szShade(col,-.22), dk2=szShade(col,-.4), lt=szShade(col,.25);
+    const arm=Math.min(18,w*0.1), n=Math.max(2,Math.round((w-2*arm)/70)), cw=(w-2*arm)/n;
+    let back="", seat="";
+    for(let i=0;i<n;i++){
+      back+=`<rect x="${arm+i*cw+2}" y="${h*0.06}" width="${cw-4}" height="${h*0.34}" rx="6" fill="${col}" stroke="${dk2}" stroke-width="1"/>`;
+      seat+=`<rect x="${arm+i*cw+1}" y="${h*0.4}" width="${cw-2}" height="${h*0.38}" rx="5" fill="${lt}" stroke="${dk2}" stroke-width="1"/>`;
+    }
+    const armR=x=>`<rect x="${x}" y="${h*0.16}" width="${arm}" height="${h*0.74}" rx="7" fill="${dk}" stroke="${dk2}" stroke-width="1"/><rect x="${x+2}" y="${h*0.18}" width="${Math.max(2,arm-4)}" height="${h*0.14}" rx="4" fill="${col}"/>`;
+    return `<rect class="sz-main" width="${w}" height="${h}" fill="rgba(0,0,0,0)"/>
+      <ellipse cx="${w/2}" cy="${h-1}" rx="${w*0.48}" ry="3.5" fill="rgba(0,0,0,.16)" pointer-events="none"/>
+      <rect x="${arm*0.5}" y="0" width="${w-arm}" height="${h*0.5}" rx="9" fill="${dk}" stroke="${dk2}" stroke-width="1.2"/>${back}
+      ${armR(0)}${armR(w-arm)}${seat}
+      <rect x="${arm}" y="${h*0.76}" width="${w-2*arm}" height="${h*0.15}" rx="3" fill="${dk}" stroke="${dk2}" stroke-width="1"/>
+      <rect x="${arm*0.6}" y="${h*0.9}" width="7" height="${h*0.08}" rx="2" fill="#3a2a1a"/><rect x="${w-arm*0.6-7}" y="${h*0.9}" width="7" height="${h*0.08}" rx="2" fill="#3a2a1a"/>`;
+  }
+  if(t==="waschbecken"){   /* leicht schräg von vorn: Unterschrank mit Tür, darüber Platte mit Becken und Wasserhahn */
+    const cab=F("#b9c4cc"), cd=szShade(cab,-.3), top=h*0.52, cx=w/2;
+    return `<rect class="sz-main" width="${w}" height="${h}" fill="rgba(0,0,0,0)"/>
+      <ellipse cx="${cx}" cy="${h-1}" rx="${w*0.46}" ry="3" fill="rgba(0,0,0,.16)" pointer-events="none"/>
+      <rect x="3" y="${top}" width="${w-6}" height="${h-top-2}" rx="3" fill="${cab}" stroke="${cd}" stroke-width="1.2"/>
+      <line x1="${cx}" y1="${top+5}" x2="${cx}" y2="${h-6}" stroke="${cd}" stroke-width="1"/>
+      <line x1="${cx-8}" y1="${top+(h-top)*0.35}" x2="${cx-8}" y2="${top+(h-top)*0.6}" stroke="${cd}" stroke-width="2" stroke-linecap="round"/><line x1="${cx+8}" y1="${top+(h-top)*0.35}" x2="${cx+8}" y2="${top+(h-top)*0.6}" stroke="${cd}" stroke-width="2" stroke-linecap="round"/>
+      <rect x="0" y="0" width="${w}" height="${top+3}" rx="7" fill="#f4f6f8" stroke="#8d99a2" stroke-width="1.5"/>
+      <rect x="1" y="${top-3}" width="${w-2}" height="6" rx="3" fill="#dde3e8" stroke="#8d99a2" stroke-width="1"/>
+      <ellipse cx="${cx}" cy="${top*0.6}" rx="${w*0.3}" ry="${top*0.3}" fill="#bcdcec" stroke="#7f99a8" stroke-width="1.5"/>
+      <ellipse cx="${cx}" cy="${top*0.64}" rx="${w*0.22}" ry="${top*0.2}" fill="#dff1f9"/>
+      <circle cx="${cx}" cy="${top*0.66}" r="2" fill="#6f7f8a"/>
+      <rect x="${cx-2.5}" y="${top*0.08}" width="5" height="${top*0.22}" rx="2" fill="#9aa5ad" stroke="#6f7f8a" stroke-width=".8"/>
+      <circle cx="${cx}" cy="${top*0.32}" r="3.6" fill="#c9d1d7" stroke="#6f7f8a" stroke-width=".9"/>
+      <circle cx="${cx-9}" cy="${top*0.13}" r="2.6" fill="#d33" stroke="#7a1d1d" stroke-width=".6"/><circle cx="${cx+9}" cy="${top*0.13}" r="2.6" fill="#38c" stroke="#1d3f7a" stroke-width=".6"/>`;
   }
   if(t==="tuer") return `<path d="M${w} ${h/2} A${w} ${w} 0 0 1 0 ${h/2+w} L0 ${h/2} Z" fill="rgba(168,116,58,.10)" stroke="#a8743a" stroke-width="1.2" stroke-dasharray="5 4" pointer-events="none"/>
     <line x1="0" y1="${h/2}" x2="0" y2="${h/2+w}" stroke="#a8743a" stroke-width="4" stroke-linecap="round"/>
