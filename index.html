@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:35"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:41"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1275,7 +1275,11 @@ function szStudent(name){ try{ const {c}=szCtx(); const n=String(name||"").trim(
 function szGender(it,k){
   const st=szStudent((it.names||[])[k]);
   if(st&&st.sex==="junge") return "j"; if(st&&st.sex==="maedchen") return "m";
-  return (it.g&&it.g[k])||((szSeed(it)+k)%2?"m":"j"); }
+  /* ohne eingetragenes Geschlecht: feste Figur je Name, damit sie beim Platz- oder Tischwechsel gleich bleibt */
+  const nm=String((it.names||[])[k]||"").trim().toLowerCase();
+  if(!st&&it.g&&it.g[k]) return it.g[k];   /* von Hand getippter Name: Wahl „Figur Platz“ */
+  let h=0; for(const ch of nm) h+=ch.charCodeAt(0);
+  return h%2?"m":"j"; }
 function szKid(hx,hy,side,g,rot,teacher,k=1){
   const a={s:0,n:180,w:90,e:-90}[side], skin="#f6d2b0", ln="rgba(0,0,0,.3)", T=!!teacher;
   const sh=T?"#2f9e8f":g==="m"?"#ef7fb1":"#3d8be5", hair=T?"#6b3e1f":g==="m"?"#7a4a22":"#5a3a1e";
@@ -1481,7 +1485,7 @@ function szChips(){
     <p class="sub">Erst einen Tisch im Plan antippen, dann hier auf einen Namen tippen.</p>
     <div>${free.map(s=>`<button class="grade" style="border:0;cursor:pointer" data-sz-chip="${esc(s.name)}">${SEX_ICON[s.sex]?SEX_ICON[s.sex]+" ":""}${esc(s.name)}</button>`).join("")||'<span class="empty">Alle Schüler haben einen Platz (oder die Klasse hat noch keine Schüler).</span>'}</div>
     <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
-      <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
+      <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-seats="1">Sitzplätze leeren</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
 }
 function szFontBar(){
   const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel); const d=it?"":" disabled";
@@ -1651,6 +1655,10 @@ function szBindChips(){
     if(free.length>slots.length) alert((free.length-slots.length)+" Schüler fanden keinen freien Platz – bitte Tische hinzufügen.");
     save(); render(); });
   box.querySelectorAll("[data-sz-print]").forEach(b=>b.onclick=szPrint);
+  box.querySelectorAll("[data-sz-seats]").forEach(b=>b.onclick=()=>{
+    if(!p.items.some(i=>szSeatCount(i)&&(i.names||[]).some(x=>x.trim()))){ alert("Auf den Sitzplätzen steht kein Name."); return; }
+    if(!confirm("Alle Namen von den Sitzplätzen nehmen? Die Tische bleiben stehen. Mit „Rückgängig“ lässt es sich zurücknehmen.")) return;
+    p.items.forEach(i=>{ if(szSeatCount(i)) i.names=[]; }); save(); render(); });
   box.querySelectorAll("[data-sz-clear]").forEach(b=>b.onclick=()=>{
     if(!confirm("Alle Tische und Objekte dieses Plans löschen?")) return; p.items=[]; szSel=null; save(); render(); });
 }
