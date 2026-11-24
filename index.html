@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 19:02"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 19:08"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1570,12 +1570,12 @@ function szChips(){
 }
 /* Farbe des markierten Gegenstands: Zeile über dem Plan, nur sichtbar, wenn ein Gegenstand angetippt ist */
 function szColorBar(){
-  const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); if(!it) return "";
-  const T=SZ_TYPES[it.t]||SZ_TYPES.text;
-  return `<span class="sub" style="flex:1 1 100%">Farbe – ${esc(T.n)}:</span>
-    <input type="color" data-sz-fill="1" value="${esc(it.fill||SZ_DEF_FILL[it.t]||"#dddddd")}" style="width:56px;height:38px;padding:2px;flex:0 0 auto" aria-label="Farbe wählen">
-    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:2 1 220px">${["#d9776a","#f0a04b","#f2d04b","#7cbf5a","#4f9fd9","#8f7fd9","#e58fb8","#a9794a","#9aa0a6","#ffffff","#333333"].map(c=>`<button type="button" data-sz-swatch="${c}" aria-label="Farbe ${c}" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #888;background:${c};cursor:pointer;padding:0"></button>`).join("")}</div>
-    <button class="btn ghost" data-sz-fill-reset="1" style="flex:0 0 auto">Standardfarbe</button>`;
+  const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel), d=it?"":" disabled";
+  const T=it?(SZ_TYPES[it.t]||SZ_TYPES.text):null;
+  return `<span class="sub" style="flex:1 1 100%">${it?"Farbe – "+esc(T.n)+":":"Farbe des Gegenstands – tippe zuerst einen Gegenstand im Plan an:"}</span>
+    <input type="color" data-sz-fill="1" value="${esc((it&&(it.fill||SZ_DEF_FILL[it.t]))||"#dddddd")}" style="width:56px;height:38px;padding:2px;flex:0 0 auto" aria-label="Farbe wählen"${d}>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:2 1 220px">${["#d9776a","#f0a04b","#f2d04b","#7cbf5a","#4f9fd9","#8f7fd9","#e58fb8","#a9794a","#9aa0a6","#ffffff","#333333"].map(c=>`<button type="button" data-sz-swatch="${c}" aria-label="Farbe ${c}" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #888;background:${c};cursor:${it?"pointer":"default"};padding:0;opacity:${it?1:.45}"${d}></button>`).join("")}</div>
+    <button class="btn ghost" data-sz-fill-reset="1" style="flex:0 0 auto"${d}>Standardfarbe</button>`;
 }
 function szBindColor(){
   const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); const box=document.getElementById("szcolor"); if(!it||!box) return;
@@ -1609,7 +1609,7 @@ function szRefresh(){
   const a=document.getElementById("szpanel"), b=document.getElementById("szchips"); if(!a||!b) return;
   a.innerHTML=szPanel(); b.innerHTML=szChips(); szBindPanel(); szBindChips();
   const fb=document.getElementById("szfont"); if(fb){ fb.innerHTML=szFontBar(); szBindFont(); }
-  const cb=document.getElementById("szcolor"); if(cb){ cb.innerHTML=szColorBar(); cb.style.marginBottom=szSel?"12px":"0"; szBindColor(); }
+  const cb=document.getElementById("szcolor"); if(cb){ cb.innerHTML=szColorBar(); szBindColor(); }
 }
 /* Meter-Raster: 1 Einheit = 1 cm; Linien alle 1 m, Beschriftung am oberen und linken Rand */
 function szGrid(w,h){
@@ -1643,9 +1643,9 @@ function vSitz(){
       <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-grid="1" style="width:auto" ${state.szGrid===false?"":"checked"}> Meter-Raster anzeigen</label>
       <label style="flex:2;display:flex;gap:6px;align-items:center"><input type="checkbox" data-sz-kids="1" style="width:auto" ${state.szKids===false?"":"checked"}> Kinder &amp; Lehrkraft zeichnen</label>
       <label style="flex:1">Drehgeschwindigkeit<select data-sz-speed="1">${[["1","Normal"],["0.5","Langsam"],["0.25","Sehr langsam"]].map(([v,n])=>`<option value="${v}" ${(state.szRotSpeed||0.5)==+v?"selected":""}>${n}</option>`).join("")}</select></label></div>
-    <div class="row">${Object.entries(SZ_TYPES).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
+    <div class="row">${Object.entries(SZ_TYPES).sort((a,b)=>a[1].n.localeCompare(b[1].n,"de")).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
     <div class="row" id="szfont" style="align-items:end">${szFontBar()}</div>
-    <div class="row" id="szcolor" style="align-items:center;margin-bottom:${szSel?"12px":"0"}">${szColorBar()}</div>
+    <div class="row" id="szcolor" style="align-items:center">${szColorBar()}</div>
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:6px">
       <span class="sub">Zoom</span>
       <button class="btn ghost" data-sz-z="-1" style="padding:6px 12px;font-size:1.1rem;line-height:1" aria-label="Verkleinern">−</button>
