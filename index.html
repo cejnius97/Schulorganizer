@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 19:13"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 19:14"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1583,7 +1583,7 @@ function szDuplicate(){
   if(szHist[openClass]) szHist[openClass].t=0;     /* jede Kopie ist ein eigener Schritt für „Rückgängig“ */
   p.items.push(n); szSel=n.id; save(); if(szHist[openClass]) szHist[openClass].t=0; render();
 }
-/* Farbe des markierten Gegenstands: Zeile über dem Plan, nur sichtbar, wenn ein Gegenstand angetippt ist */
+/* Duplizieren und Farbe des markierten Gegenstands: Zeile über dem Plan, ohne Markierung ausgegraut */
 function szColorBar(){
   const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel), d=it?"":" disabled";
   const T=it?(SZ_TYPES[it.t]||SZ_TYPES.text):null;
