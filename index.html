@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:49"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:51"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1350,9 +1350,11 @@ function szShape(it){
   if(t==="tisch1"||t==="tisch2"||t==="gruppe"||t==="lehrer"){
     let ch="";
     const c=szK(it), A=34*c, B=30*c;
-    if(t==="tisch1") ch=szChair((w-A)/2,h-6*c,A,B,"s",c);
-    else if(t==="tisch2") ch=szChair(w*0.25-A/2,h-6*c,A,B,"s",c)+szChair(w*0.75-A/2,h-6*c,A,B,"s",c);
-    else if(t==="gruppe") ch=szChair((w-A)/2,h-6*c,A,B,"s",c)+szChair((w-A)/2,-24*c,A,B,"n",c)+szChair(-24*c,(h-A)/2,B,A,"w",c)+szChair(w-6*c,(h-A)/2,B,A,"e",c);
+    /* Stuhl nur an Plätzen, denen ein Name zugewiesen ist (leerer Tisch = kein Stuhl) */
+    const occ=k=>szSeatName(it,k)?1:0;
+    if(t==="tisch1") ch=occ(0)?szChair((w-A)/2,h-6*c,A,B,"s",c):"";
+    else if(t==="tisch2") ch=(occ(0)?szChair(w*0.25-A/2,h-6*c,A,B,"s",c):"")+(occ(1)?szChair(w*0.75-A/2,h-6*c,A,B,"s",c):"");
+    else if(t==="gruppe") ch=(occ(0)?szChair((w-A)/2,h-6*c,A,B,"s",c):"")+(occ(1)?szChair((w-A)/2,-24*c,A,B,"n",c):"")+(occ(2)?szChair(-24*c,(h-A)/2,B,A,"w",c):"")+(occ(3)?szChair(w-6*c,(h-A)/2,B,A,"e",c):"");
     else ch=szChair((w-40*c)/2,-24*c,40*c,B,"n",c);
     const top=main(it.fill||(t==="lehrer"?"url(#szwood2)":"url(#szwood)"),t==="lehrer"?"#7c5428":"#9a7338");
     const hl=`<rect x="3" y="3" width="${Math.max(0,w-6)}" height="${Math.max(0,h-6)}" rx="3" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>`;
