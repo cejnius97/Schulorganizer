@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:57"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 19:00"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1211,10 +1211,10 @@ const SZ_TYPES={
   waschbecken:{n:"Waschbecken",ic:"🚰",w:80,h:60,fill:"#b9c4cc",seats:0},
   tuer:{n:"Tür",ic:"🚪",w:90,h:12,fill:"#d9a066",seats:0,label:"Tür"},
   fenster:{n:"Fenster",ic:"🪟",w:120,h:14,fill:"#bfe6f5",seats:0},
-  kommode:{n:"Schubladenkasten",ic:"🗃️",w:90,h:40,fill:"#e0d4c4",seats:0,label:"Laden"},
+  kommode:{n:"Schubladenkasten",ic:"🗃️",w:90,h:40,fill:"#e0d4c4",seats:0},
   pflanze:{n:"Pflanze",ic:"🪴",w:40,h:40,fill:"#4fa04b",seats:0},
   blumen:{n:"Blumen",ic:"🌷",w:34,h:34,fill:"#ff7aa8",seats:0},
-  schrank:{n:"Schrank",ic:"🗄️",w:100,h:40,fill:"#e0d4c4",seats:0,label:"Schrank"},
+  schrank:{n:"Schrank",ic:"🗄️",w:100,h:40,fill:"#e0d4c4",seats:0},
   text:{n:"Beschriftung",ic:"🏷️",w:120,h:40,fill:"#f1f1f1",seats:0,label:"Bereich"}
 };
 let szSel=null;
@@ -1421,16 +1421,23 @@ function szShape(it){
     return `<rect x="-3" y="${h-1}" width="${w+6}" height="${Math.max(4,h*0.4)}" rx="2" fill="#f1ede4" stroke="#a79f90" stroke-width="1" pointer-events="none"/>
       <rect class="sz-main" width="${w}" height="${h}" rx="2" fill="${F("#fbfbf8")}" stroke="#8a97a3" stroke-width="1.5"/>${pane(m)}${pane(w/2+m*0.5)}`;
   }
-  if(t==="schrank"||t==="kommode"){
-    const fb=Math.min(11,h*0.32), n=Math.max(1,Math.round(w/(t==="schrank"?50:32))), dw=w/n;
+  if(t==="schrank"||t==="kommode"){   /* leicht schräg von vorn: Deckfläche oben, darunter die Front mit Türen bzw. Schubladen */
+    const col=F("#d9c7a3"), dk=szShade(col,-.22), dk2=szShade(col,-.42), lt=szShade(col,.3), top=h*0.22;
     let fr="";
-    for(let i=0;i<n;i++){
-      fr+=`<rect x="${i*dw+1.5}" y="${h-fb+1}" width="${dw-3}" height="${fb-2}" rx="2" fill="${t==="schrank"?"#b89a6e":"#c9ab7c"}" stroke="#7a6240" stroke-width="1"/>`;
-      fr+=t==="schrank"?`<circle cx="${i*dw+(i%2?5:dw-5)}" cy="${h-fb/2}" r="1.8" fill="#5a4630"/>`
-        :`<line x1="${i*dw+dw/2-5}" y1="${h-fb/2}" x2="${i*dw+dw/2+5}" y2="${h-fb/2}" stroke="#5a4630" stroke-width="2" stroke-linecap="round"/>`;
+    if(t==="schrank"){
+      const n=Math.max(1,Math.round(w/50)), dw=w/n;
+      for(let i=0;i<n;i++) fr+=`<rect x="${i*dw+2.5}" y="${top+3}" width="${dw-5}" height="${h-top-10}" rx="2" fill="${col}" stroke="${dk2}" stroke-width="1"/>
+        <circle cx="${i*dw+(i%2?7:dw-7)}" cy="${top+(h-top)/2-1}" r="1.9" fill="#5a4630"/>`;
+    }else{
+      const rows=h>=34?3:2, rh=(h-top-8)/rows;
+      for(let i=0;i<rows;i++) fr+=`<rect x="3" y="${top+3+i*rh}" width="${w-6}" height="${rh-2}" rx="2" fill="${col}" stroke="${dk2}" stroke-width="1"/>
+        <line x1="${w/2-6}" y1="${top+3+i*rh+(rh-2)/2}" x2="${w/2+6}" y2="${top+3+i*rh+(rh-2)/2}" stroke="#5a4630" stroke-width="2" stroke-linecap="round"/>`;
     }
-    return `<rect class="sz-main" width="${w}" height="${h}" rx="3" fill="${F("#d9c7a3")}" stroke="#8c7656" stroke-width="1.5"/>
-      <path d="M4 ${h*0.28}H${w-4}M4 ${h*0.5}H${w-4}" stroke="rgba(120,90,50,.2)" stroke-width="1"/>${fr}`;
+    return `<rect class="sz-main" width="${w}" height="${h}" fill="rgba(0,0,0,0)"/>
+      <ellipse cx="${w/2}" cy="${h-1}" rx="${w*0.48}" ry="3" fill="rgba(0,0,0,.16)" pointer-events="none"/>
+      <rect x="0" y="${top}" width="${w}" height="${h-top-3}" rx="2" fill="${dk}" stroke="${dk2}" stroke-width="1.2"/>${fr}
+      <rect x="3" y="${h-5}" width="${w-6}" height="4" rx="1" fill="${dk2}"/>
+      <rect x="-1.5" y="0" width="${w+3}" height="${top+2}" rx="3" fill="${lt}" stroke="${dk2}" stroke-width="1.2"/>`;
   }
   if(t==="pflanze"){
     const cx=w/2, cy=h/2, R=Math.min(w,h)/2; let lv="", st="";
