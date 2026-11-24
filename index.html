@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:43"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:49"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1205,6 +1205,8 @@ const SZ_TYPES={
   gruppe:{n:"Gruppentisch",ic:"👥",w:140,h:140,fill:"#fff4cf",seats:4},
   lehrer:{n:"Lehrertisch",ic:"👩‍🏫",w:140,h:70,fill:"#cfe8ff",seats:0,label:"Lehrer/in"},
   tafel:{n:"Tafel",ic:"🟩",w:240,h:15,fill:"#9bbf9b",seats:0,label:"Tafel"},
+  teppich_rund:{n:"Teppich rund",ic:"⭕",w:200,h:200,fill:"#d9776a",seats:0},
+  teppich_eckig:{n:"Teppich eckig",ic:"🟥",w:240,h:160,fill:"#d9776a",seats:0},
   tuer:{n:"Tür",ic:"🚪",w:90,h:12,fill:"#d9a066",seats:0,label:"Tür"},
   fenster:{n:"Fenster",ic:"🪟",w:120,h:14,fill:"#bfe6f5",seats:0},
   kommode:{n:"Schubladenkasten",ic:"🗃️",w:90,h:40,fill:"#e0d4c4",seats:0,label:"Laden"},
@@ -1340,8 +1342,10 @@ function szKids(it){
     return kid+field;
   }).join("");
 }
+/* Standardfarben der Gegenstände (für die Farbauswahl) */
+const SZ_DEF_FILL={tisch1:"#e3c48c",tisch2:"#e3c48c",gruppe:"#e3c48c",lehrer:"#c99a5e",tafel:"#2f5d46",tuer:"#a8743a",fenster:"#fbfbf8",schrank:"#d9c7a3",kommode:"#d9c7a3",pflanze:"#4fa04b",blumen:"#ff7aa8",text:"#f1f1f1",teppich_rund:"#d9776a",teppich_eckig:"#d9776a"};
 function szShape(it){
-  const w=it.w,h=it.h,t=it.t;
+  const w=it.w,h=it.h,t=it.t, F=def=>it.fill||def;
   const main=(fill,stroke,extra="")=>`<rect class="sz-main" width="${w}" height="${h}" rx="${Math.min(5,h/3)}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" ${extra}/>`;
   if(t==="tisch1"||t==="tisch2"||t==="gruppe"||t==="lehrer"){
     let ch="";
@@ -1350,21 +1354,30 @@ function szShape(it){
     else if(t==="tisch2") ch=szChair(w*0.25-A/2,h-6*c,A,B,"s",c)+szChair(w*0.75-A/2,h-6*c,A,B,"s",c);
     else if(t==="gruppe") ch=szChair((w-A)/2,h-6*c,A,B,"s",c)+szChair((w-A)/2,-24*c,A,B,"n",c)+szChair(-24*c,(h-A)/2,B,A,"w",c)+szChair(w-6*c,(h-A)/2,B,A,"e",c);
     else ch=szChair((w-40*c)/2,-24*c,40*c,B,"n",c);
-    const top=main(t==="lehrer"?"url(#szwood2)":"url(#szwood)",t==="lehrer"?"#7c5428":"#9a7338");
+    const top=main(it.fill||(t==="lehrer"?"url(#szwood2)":"url(#szwood)"),t==="lehrer"?"#7c5428":"#9a7338");
     const hl=`<rect x="3" y="3" width="${Math.max(0,w-6)}" height="${Math.max(0,h-6)}" rx="3" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>`;
     return ch+top+hl+szKids(it);
   }
   if(t==="tafel") return `<rect class="sz-main" width="${w}" height="${h}" rx="2" fill="#8b5a2b" stroke="#5b3a18" stroke-width="1.5"/>
-    <rect x="2.5" y="2.5" width="${Math.max(0,w-5)}" height="${Math.max(0,h-5)}" rx="1" fill="#2f5d46"/>`;
+    <rect x="2.5" y="2.5" width="${Math.max(0,w-5)}" height="${Math.max(0,h-5)}" rx="1" fill="${F("#2f5d46")}"/>`;
+  if(t==="teppich_rund"||t==="teppich_eckig"){
+    const col=F("#d9776a"), rd=t==="teppich_rund", i1=Math.min(w,h)*0.08, i2=i1*2.2, ln="rgba(0,0,0,.35)";
+    const shape=(x,y,ww,hh,extra)=>rd?`<ellipse cx="${w/2}" cy="${h/2}" rx="${Math.max(1,ww/2)}" ry="${Math.max(1,hh/2)}" ${extra}/>`
+      :`<rect x="${x}" y="${y}" width="${Math.max(1,ww)}" height="${Math.max(1,hh)}" rx="${x?2:4}" ${extra}/>`;
+    let fr=""; if(!rd){ for(let y=6;y<h-3;y+=8) fr+=`<line x1="-5" y1="${y}" x2="0" y2="${y}"/><line x1="${w}" y1="${y}" x2="${w+5}" y2="${y}"/>`; fr=`<g stroke="${ln}" stroke-width="1.4" stroke-linecap="round" pointer-events="none">${fr}</g>`; }
+    return fr+shape(0,0,w,h,`class="sz-main" fill="${col}" stroke="${ln}" stroke-width="1.5"`)
+      +shape(i1,i1,w-2*i1,h-2*i1,`fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-dasharray="7 5" pointer-events="none"`)
+      +shape(i2,i2,w-2*i2,h-2*i2,`fill="rgba(255,255,255,.16)" stroke="none" pointer-events="none"`);
+  }
   if(t==="tuer") return `<path d="M${w} ${h/2} A${w} ${w} 0 0 1 0 ${h/2+w} L0 ${h/2} Z" fill="rgba(168,116,58,.10)" stroke="#a8743a" stroke-width="1.2" stroke-dasharray="5 4" pointer-events="none"/>
     <line x1="0" y1="${h/2}" x2="0" y2="${h/2+w}" stroke="#a8743a" stroke-width="4" stroke-linecap="round"/>
-    <rect class="sz-main" width="${w}" height="${h}" fill="#a8743a" stroke="#6e4a22" stroke-width="1.5"/>`;
+    <rect class="sz-main" width="${w}" height="${h}" fill="${F("#a8743a")}" stroke="#6e4a22" stroke-width="1.5"/>`;
   if(t==="fenster"){
     const m=Math.max(1.8,Math.min(3,h*0.2)), pw=w/2-m*1.5, ph=h-2*m;
     const pane=x=>`<rect x="${x}" y="${m}" width="${pw}" height="${ph}" fill="url(#szglass)" stroke="#8a97a3" stroke-width=".8"/>`+
       (ph>=5?`<path d="M${x+pw*0.18} ${m+ph} L${x+pw*0.5} ${m} M${x+pw*0.5} ${m+ph} L${x+pw*0.82} ${m}" stroke="rgba(255,255,255,.75)" stroke-width="1.3" fill="none"/>`:"");
     return `<rect x="-3" y="${h-1}" width="${w+6}" height="${Math.max(4,h*0.4)}" rx="2" fill="#f1ede4" stroke="#a79f90" stroke-width="1" pointer-events="none"/>
-      <rect class="sz-main" width="${w}" height="${h}" rx="2" fill="#fbfbf8" stroke="#8a97a3" stroke-width="1.5"/>${pane(m)}${pane(w/2+m*0.5)}`;
+      <rect class="sz-main" width="${w}" height="${h}" rx="2" fill="${F("#fbfbf8")}" stroke="#8a97a3" stroke-width="1.5"/>${pane(m)}${pane(w/2+m*0.5)}`;
   }
   if(t==="schrank"||t==="kommode"){
     const fb=Math.min(11,h*0.32), n=Math.max(1,Math.round(w/(t==="schrank"?50:32))), dw=w/n;
@@ -1374,14 +1387,14 @@ function szShape(it){
       fr+=t==="schrank"?`<circle cx="${i*dw+(i%2?5:dw-5)}" cy="${h-fb/2}" r="1.8" fill="#5a4630"/>`
         :`<line x1="${i*dw+dw/2-5}" y1="${h-fb/2}" x2="${i*dw+dw/2+5}" y2="${h-fb/2}" stroke="#5a4630" stroke-width="2" stroke-linecap="round"/>`;
     }
-    return `<rect class="sz-main" width="${w}" height="${h}" rx="3" fill="#d9c7a3" stroke="#8c7656" stroke-width="1.5"/>
+    return `<rect class="sz-main" width="${w}" height="${h}" rx="3" fill="${F("#d9c7a3")}" stroke="#8c7656" stroke-width="1.5"/>
       <path d="M4 ${h*0.28}H${w-4}M4 ${h*0.5}H${w-4}" stroke="rgba(120,90,50,.2)" stroke-width="1"/>${fr}`;
   }
   if(t==="pflanze"){
     const cx=w/2, cy=h/2, R=Math.min(w,h)/2; let lv="", st="";
     for(let i=0;i<9;i++){
       st+=`<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-R*0.62}" transform="rotate(${i*40+20} ${cx} ${cy})" stroke="#7a4a22" stroke-width="${Math.max(1.5,R*0.07)}" stroke-linecap="round"/>`;
-      lv+=`<ellipse cx="${cx}" cy="${cy-R*0.6}" rx="${R*0.2}" ry="${R*0.4}" transform="rotate(${i*40} ${cx} ${cy})" fill="${i%2?"#4fa04b":"#6dbb5a"}" stroke="#2f6b2e" stroke-width=".8"/>`;
+      lv+=`<ellipse cx="${cx}" cy="${cy-R*0.6}" rx="${R*0.2}" ry="${R*0.4}" transform="rotate(${i*40} ${cx} ${cy})" fill="${it.fill?it.fill:(i%2?"#4fa04b":"#6dbb5a")}"${it.fill&&i%2?' fill-opacity=".72"':""} stroke="#2f6b2e" stroke-width=".8"/>`;
     }
     return `<rect class="sz-main" width="${w}" height="${h}" rx="6" fill="rgba(0,0,0,0)" stroke="none"/>
       <circle cx="${cx}" cy="${cy}" r="${R*0.55}" fill="#a95a24" stroke="#6e3a14" stroke-width="1.2"/>${st}${lv}
@@ -1390,12 +1403,12 @@ function szShape(it){
   if(t==="blumen"){
     const cx=w/2, cy=h/2, R=Math.min(w,h)/2, col=["#ff7aa8","#ffd23f","#ff8a3d","#c07bff","#ff5d5d"]; let f="";
     for(let i=0;i<5;i++){ const an=(i*72-90)*Math.PI/180, fx=cx+R*0.5*Math.cos(an), fy=cy+R*0.5*Math.sin(an);
-      f+=`<circle cx="${fx}" cy="${fy}" r="${R*0.27}" fill="${col[i]}" stroke="rgba(0,0,0,.25)" stroke-width=".8"/><circle cx="${fx}" cy="${fy}" r="${R*0.09}" fill="#fff3a0"/>`; }
+      f+=`<circle cx="${fx}" cy="${fy}" r="${R*0.27}" fill="${it.fill||col[i]}" stroke="rgba(0,0,0,.25)" stroke-width=".8"/><circle cx="${fx}" cy="${fy}" r="${R*0.09}" fill="#fff3a0"/>`; }
     return `<rect class="sz-main" width="${w}" height="${h}" rx="6" fill="rgba(0,0,0,0)" stroke="none"/>
       <circle cx="${cx}" cy="${cy}" r="${R*0.8}" fill="#a95a24" stroke="#6e3a14" stroke-width="1.2"/><circle cx="${cx}" cy="${cy}" r="${R*0.62}" fill="#5aa84f"/>${f}
       <circle cx="${cx}" cy="${cy}" r="${R*0.24}" fill="#ffb3cd" stroke="rgba(0,0,0,.25)" stroke-width=".8"/><circle cx="${cx}" cy="${cy}" r="${R*0.08}" fill="#fff3a0"/>`;
   }
-  return `<rect class="sz-main" width="${w}" height="${h}" rx="8" fill="rgba(255,255,255,.55)" stroke="#8a8a8a" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+  return `<rect class="sz-main" width="${w}" height="${h}" rx="8" fill="${it.fill||"rgba(255,255,255,.55)"}" stroke="#8a8a8a" stroke-width="1.5" stroke-dasharray="6 4"/>`;
 }
 /* Im Plan nur der Vorname; gibt es in der Klasse mehrere mit gleichem Vornamen, zusätzlich der erste Buchstabe des Nachnamens */
 function szShort(nm){
@@ -1474,6 +1487,9 @@ function szPanel(){
       <button class="btn ghost" data-sz-rot="-90">⟲ 90°</button><button class="btn ghost" data-sz-rot="90">⟳ 90°</button></div>
     <div class="row"><button class="btn ghost" data-sz-scale="0.9">− kleiner</button><button class="btn ghost" data-sz-scale="1.1">+ größer</button>
       <button class="btn ghost" data-sz-dup="1">Duplizieren</button><button class="btn ghost" data-sz-del="1">Löschen</button></div>
+    <div class="row" style="align-items:center;margin-top:8px"><label style="flex:0 0 auto">Farbe<input type="color" data-sz-fill="1" value="${esc(it.fill||SZ_DEF_FILL[it.t]||"#dddddd")}" style="width:56px;height:38px;padding:2px"></label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;flex:2 1 220px">${["#d9776a","#f0a04b","#f2d04b","#7cbf5a","#4f9fd9","#8f7fd9","#e58fb8","#a9794a","#9aa0a6","#ffffff","#333333"].map(c=>`<button type="button" data-sz-swatch="${c}" aria-label="Farbe ${c}" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #888;background:${c};cursor:pointer;padding:0"></button>`).join("")}</div>
+      <button class="btn ghost" data-sz-fill-reset="1" style="flex:0 0 auto">Standardfarbe</button></div>
     ${T.seats?`
     <div class="row" style="margin-top:8px">${Array.from({length:T.seats},(_,k)=>`<label>Figur Platz ${k+1}<select data-sz-g="${k}"><option value="j" ${szGender(it,k)==="j"?"selected":""}>Junge</option><option value="m" ${szGender(it,k)==="m"?"selected":""}>Mädchen</option></select></label>`).join("")}</div>`:""}`;
 }
@@ -1568,7 +1584,7 @@ function vSitz(){
       <rect width="${W}" height="${H}" fill="url(#szfloor)"/>
       <rect width="${W}" height="${H}" fill="none" stroke="#6f6252" stroke-width="14" pointer-events="none"/>
       ${szGrid(p.w,p.h)}
-      ${p.items.map(szG).join("")}
+      ${[...p.items].sort((a,b)=>(/^teppich/.test(b.t)?1:0)-(/^teppich/.test(a.t)?1:0)).map(szG).join("")}
       ${szGridLabels(p.w,p.h)}
       <g pointer-events="none"><line x1="24" y1="${H-22}" x2="124" y2="${H-22}" stroke="#4a4a4a" stroke-width="3"/><line x1="24" y1="${H-28}" x2="24" y2="${H-16}" stroke="#4a4a4a" stroke-width="3"/><line x1="124" y1="${H-28}" x2="124" y2="${H-16}" stroke="#4a4a4a" stroke-width="3"/><text x="74" y="${H-30}" text-anchor="middle" font-size="15" fill="#4a4a4a">1 m</text></g></svg>
     <p class="sub">Maßstab: Balken unten links = 1 m · Raum ${p.w} × ${p.h} m. Tische mit Finger oder Maus ziehen. Auf dem Plan selbst scrollt die Seite nicht – zum Scrollen neben den Plan tippen.</p></div>
@@ -1585,6 +1601,9 @@ function szBindPanel(){
   box.querySelectorAll("[data-sz-p]").forEach(i=>i.oninput=()=>{
     const k=i.dataset.szP, v=parseFloat(i.value); if(isNaN(v)) return;
     it[k]=k==="rot"?v:Math.min(600,Math.max(10,v)); szRedraw(it); szSyncPanelLvl(it); save(); });
+  const fl=box.querySelector("[data-sz-fill]"); if(fl) fl.oninput=()=>{ it.fill=fl.value; szRedraw(it); save(); };
+  box.querySelectorAll("[data-sz-swatch]").forEach(b=>b.onclick=()=>{ it.fill=b.dataset.szSwatch; szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-fill-reset]").forEach(b=>b.onclick=()=>{ delete it.fill; szRedraw(it); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-level]").forEach(b=>b.onclick=()=>{
     it.rot=(((Math.round((it.rot||0)/90)*90)%360)+360)%360; szRedraw(it); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-level-all]").forEach(b=>b.onclick=()=>{
