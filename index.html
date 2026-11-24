@@ -246,7 +246,7 @@ function sortNames(){
     c.students.sort(byName); });
 }
 function save(){
-  try{ sortNames();
+  try{ sortNames(); szTrack();
     if(APP){ fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state),keepalive:true}); }
     else{
       const j=JSON.stringify(state);
@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 00:10"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:34"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1225,6 +1225,30 @@ const SZ_FONTS={"":["Standard",""],arial:["Arial","Arial,Helvetica,sans-serif"],
   script:["Schreibschrift","'Segoe Script','Snell Roundhand','Brush Script MT',cursive"],mono:["Schreibmaschine","'Courier New',monospace"]};
 function szPlan(cid){ const S=state.sitz??={}; return S[cid]??={w:8,h:6,items:[]}; }
 function szCtx(){ const c=state.classes.find(x=>x.id===openClass); return {c,p:c?szPlan(c.id):null}; }
+/* Rückgängig / Wiederholen für den Sitzplan: Verlauf pro Klasse, Schnappschuss des Plans vor jeder Änderung.
+   Schnell aufeinanderfolgende Speicherungen (z. B. Tippen in einem Feld) zählen als ein Schritt. */
+const szHist={};
+function szH(cid,cur){ return szHist[cid]??={undo:[],redo:[],last:cur,t:0}; }
+function szTrack(){
+  if(tab!=="sitz") return; const {c,p}=szCtx(); if(!c||!p) return;
+  const cur=JSON.stringify(p), H=szH(c.id,cur);
+  if(cur!==H.last){
+    const now=Date.now(); if(now-H.t>600||!H.undo.length){ H.undo.push(H.last); if(H.undo.length>60) H.undo.shift(); }
+    H.t=now; H.last=cur; H.redo=[]; }
+  szHistBtns();
+}
+function szHistBtns(){
+  const {c}=szCtx(); const H=c&&szHist[c.id];
+  const u=document.getElementById("szundo"), r=document.getElementById("szredo");
+  if(u) u.disabled=!(H&&H.undo.length); if(r) r.disabled=!(H&&H.redo.length);
+}
+function szStep(dir){
+  const {c,p}=szCtx(); if(!c||!p) return; const H=szH(c.id,JSON.stringify(p));
+  const from=dir<0?H.undo:H.redo, to=dir<0?H.redo:H.undo; if(!from.length) return;
+  const cur=JSON.stringify(p); to.push(cur);
+  const snap=from.pop(); Object.keys(p).forEach(k=>delete p[k]); Object.assign(p,JSON.parse(snap));
+  H.last=snap; H.t=0; szSel=null; save(); render();
+}
 const szSnap=v=>state.szSnap===false?v:Math.round(v/10)*10;
 const szTr=it=>`translate(${it.x} ${it.y}) rotate(${it.rot||0} ${it.w/2} ${it.h/2})`;
 function szNew(type,x,y){
@@ -1508,6 +1532,10 @@ function vSitz(){
       <b style="min-width:3.2em;text-align:center">${Math.round((state.szZoom||0.5)*100)} %</b>
       <button class="btn ghost" data-sz-z="1" style="padding:6px 12px;font-size:1.1rem;line-height:1" aria-label="Vergrößern">+</button>
     </div>
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:6px">
+      <button class="btn ghost" id="szundo" data-sz-hist="-1" style="padding:6px 12px">↩ Rückgängig</button>
+      <button class="btn ghost" id="szredo" data-sz-hist="1" style="padding:6px 12px">↪ Wiederholen</button>
+    </div>
     <svg id="szsvg" viewBox="0 0 ${W} ${H}" style="width:${Math.round((state.szZoom||0.5)*100)}%;min-width:260px;height:auto;background:#fff;border:2px solid #555;border-radius:6px;touch-action:none;display:block;user-select:none;-webkit-user-select:none">
       <defs>
         <linearGradient id="szwood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1d9a6"/><stop offset="1" stop-color="#dcb878"/></linearGradient>
@@ -1582,6 +1610,8 @@ function bindSitz(m){
   m.querySelectorAll("[data-sz-dim]").forEach(i=>i.onchange=()=>{
     const k=i.dataset.szDim; p[k]=Math.min(30,Math.max(2,parseFloat(i.value)||p[k])); save(); render(); });
   const sp=m.querySelector("[data-sz-speed]"); if(sp) sp.onchange=()=>{ state.szRotSpeed=parseFloat(sp.value); save(); };
+  m.querySelectorAll("[data-sz-hist]").forEach(b=>b.onclick=()=>szStep(+b.dataset.szHist));
+  szH(c.id,JSON.stringify(p)); szHistBtns();
   m.querySelectorAll("[data-sz-z]").forEach(b=>b.onclick=()=>{
     const z=Math.round(((state.szZoom||0.5)+0.1*(+b.dataset.szZ))*10)/10;
     state.szZoom=Math.min(1,Math.max(0.3,z)); save(); render(); });
