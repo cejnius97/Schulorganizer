@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 19:10"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 19:13"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1568,13 +1568,14 @@ function szChips(){
     <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
       <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-seats="1" title="Nimmt nur die Schülernamen aus dem Plan; Tische bleiben unverändert">Sitzplätze leeren</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
 }
-/* Gegenstand duplizieren: gleiche Größe, Drehung, Farbe und Schrift; Schülernamen werden nicht mitkopiert
-   (kein Schüler an zwei Plätzen), Beschriftungen schon. Die Kopie steht neben dem Original, sonst leicht versetzt. */
+/* Gegenstand duplizieren: gleiche Größe, Drehung, Farbe und Schrift; bei Tischen ohne Namen
+   (kein Schüler an zwei Plätzen), Beschriftungsfelder behalten ihren Text. Die Kopie steht neben dem Original, sonst leicht versetzt. */
 function szDuplicate(){
   const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); if(!it) return;
   const W=p.w*100, H=p.h*100, g=10;
   const n={...JSON.parse(JSON.stringify(it)),id:uid()};
-  const nm=(it.names||[]).map(x=>szStudent(x)?"":x); n.names=nm.some(x=>x.trim())?nm:[];
+  /* Tische mit Plätzen: Kopie ohne jeden Namen (nur der Gegenstand); Beschriftungsfelder, Tafel usw. behalten ihren Text */
+  if(szSeatCount(it)>0) n.names=[]; else { const nm=(it.names||[]).map(x=>szStudent(x)?"":x); n.names=nm.some(x=>x.trim())?nm:[]; }
   const right=it.x+it.w+g, below=it.y+it.h+g;
   if(right+it.w<=W+it.w/2){ n.x=szSnap(right); n.y=it.y; }
   else if(below+it.h<=H+it.h/2){ n.x=it.x; n.y=szSnap(below); }
