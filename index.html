@@ -1209,12 +1209,13 @@ const SZ_TYPES={
   teppich_eckig:{n:"Teppich eckig",ic:"🟥",w:240,h:160,fill:"#d9776a",seats:0},
   sofa:{n:"Sofa",ic:"🛋️",w:180,h:80,fill:"#6b8fbf",seats:0},
   waschbecken:{n:"Waschbecken",ic:"🚰",w:80,h:60,fill:"#b9c4cc",seats:0},
+  regal:{n:"Regal (offen)",ic:"📚",w:100,h:40,fill:"#c9a36b",seats:0},
   tuer:{n:"Tür",ic:"🚪",w:90,h:12,fill:"#d9a066",seats:0,label:"Tür"},
   fenster:{n:"Fenster",ic:"🪟",w:120,h:14,fill:"#bfe6f5",seats:0},
-  kommode:{n:"Schubladenkasten",ic:"🗃️",w:90,h:40,fill:"#e0d4c4",seats:0,label:"Laden"},
+  kommode:{n:"Schubladenkasten",ic:"🗃️",w:90,h:40,fill:"#e0d4c4",seats:0},
   pflanze:{n:"Pflanze",ic:"🪴",w:40,h:40,fill:"#4fa04b",seats:0},
   blumen:{n:"Blumen",ic:"🌷",w:34,h:34,fill:"#ff7aa8",seats:0},
-  schrank:{n:"Schrank",ic:"🗄️",w:100,h:40,fill:"#e0d4c4",seats:0,label:"Schrank"},
+  schrank:{n:"Schrank",ic:"🗄️",w:100,h:40,fill:"#e0d4c4",seats:0},
   text:{n:"Beschriftung",ic:"🏷️",w:120,h:40,fill:"#f1f1f1",seats:0,label:"Bereich"}
 };
 let szSel=null;
@@ -1345,7 +1346,7 @@ function szKids(it){
   }).join("");
 }
 /* Standardfarben der Gegenstände (für die Farbauswahl) */
-const SZ_DEF_FILL={tisch1:"#e3c48c",tisch2:"#e3c48c",gruppe:"#e3c48c",lehrer:"#c99a5e",tafel:"#2f5d46",tuer:"#a8743a",fenster:"#fbfbf8",schrank:"#d9c7a3",kommode:"#d9c7a3",pflanze:"#4fa04b",blumen:"#ff7aa8",text:"#f1f1f1",teppich_rund:"#d9776a",teppich_eckig:"#d9776a",sofa:"#6b8fbf",waschbecken:"#b9c4cc"};
+const SZ_DEF_FILL={tisch1:"#e3c48c",tisch2:"#e3c48c",gruppe:"#e3c48c",lehrer:"#c99a5e",tafel:"#2f5d46",tuer:"#a8743a",fenster:"#fbfbf8",schrank:"#d9c7a3",kommode:"#d9c7a3",pflanze:"#4fa04b",blumen:"#ff7aa8",text:"#f1f1f1",teppich_rund:"#d9776a",teppich_eckig:"#d9776a",sofa:"#6b8fbf",waschbecken:"#b9c4cc",regal:"#c9a36b"};
 /* Farbe heller (f>0) oder dunkler (f<0) machen */
 function szShade(hex,f){
   const m=/^#?([0-9a-f]{6})$/i.exec(hex||""); if(!m) return hex;
@@ -1378,6 +1379,24 @@ function szShape(it){
     return fr+shape(0,0,w,h,`class="sz-main" fill="${col}" stroke="${ln}" stroke-width="1.5"`)
       +shape(i1,i1,w-2*i1,h-2*i1,`fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-dasharray="7 5" pointer-events="none"`)
       +shape(i2,i2,w-2*i2,h-2*i2,`fill="rgba(255,255,255,.16)" stroke="none" pointer-events="none"`);
+  }
+  if(t==="regal"){   /* offenes Regal, leicht schräg von vorn: Seitenwände, Rückwand, Fachböden mit Büchern */
+    const col=F("#c9a36b"), dk=szShade(col,-.3), dk2=szShade(col,-.5), lt=szShade(col,.3), top=h*0.2, sd=Math.min(7,w*0.07);
+    const rows=h>=34?3:2, rh=(h-top-3)/rows, bc=["#d9534f","#4f8fd9","#e8b93b","#5cb85c","#9b6fd0","#e07b39"];
+    let inner="";
+    for(let r=0;r<rows;r++){
+      const y0=top+r*rh, base=y0+rh-3;
+      let x=sd+3, i=r*3;
+      const fillTo=sd+3+(w-2*sd-6)*(r===0?0.7:r===1?0.5:0.6);
+      while(x<fillTo){ const bw=3+(i*7)%3, bh=rh*(0.45+((i*5)%4)*0.1); inner+=`<rect x="${x}" y="${base-bh}" width="${bw}" height="${bh}" rx=".8" fill="${bc[i%bc.length]}" stroke="rgba(0,0,0,.35)" stroke-width=".5"/>`; x+=bw+0.6; i++; }
+      if(r===rows-1){ const px=w-sd-14; inner+=`<rect x="${px}" y="${base-8}" width="8" height="8" rx="1.5" fill="#a95a24" stroke="#6e3a14" stroke-width=".6"/><circle cx="${px+4}" cy="${base-11}" r="4.5" fill="#5aa84f" stroke="#2f6b2e" stroke-width=".6"/>`; }
+      inner+=`<rect x="${sd}" y="${base}" width="${w-2*sd}" height="3" fill="${col}" stroke="${dk2}" stroke-width=".8"/>`;
+    }
+    return `<rect class="sz-main" width="${w}" height="${h}" fill="rgba(0,0,0,0)"/>
+      <ellipse cx="${w/2}" cy="${h-1}" rx="${w*0.48}" ry="3" fill="rgba(0,0,0,.16)" pointer-events="none"/>
+      <rect x="${sd}" y="${top}" width="${w-2*sd}" height="${h-top-3}" fill="${dk}" stroke="${dk2}" stroke-width="1"/>${inner}
+      <rect x="0" y="${top}" width="${sd}" height="${h-top-1}" rx="2" fill="${col}" stroke="${dk2}" stroke-width="1.1"/><rect x="${w-sd}" y="${top}" width="${sd}" height="${h-top-1}" rx="2" fill="${col}" stroke="${dk2}" stroke-width="1.1"/>
+      <rect x="-1.5" y="0" width="${w+3}" height="${top+2}" rx="3" fill="${lt}" stroke="${dk2}" stroke-width="1.2"/>`;
   }
   if(t==="sofa"){   /* leicht schräg von vorn: Rückenlehne, Armlehnen, Sitzkissen, Vorderkante, Füße */
     const col=F("#6b8fbf"), dk=szShade(col,-.22), dk2=szShade(col,-.4), lt=szShade(col,.25);
@@ -1421,16 +1440,23 @@ function szShape(it){
     return `<rect x="-3" y="${h-1}" width="${w+6}" height="${Math.max(4,h*0.4)}" rx="2" fill="#f1ede4" stroke="#a79f90" stroke-width="1" pointer-events="none"/>
       <rect class="sz-main" width="${w}" height="${h}" rx="2" fill="${F("#fbfbf8")}" stroke="#8a97a3" stroke-width="1.5"/>${pane(m)}${pane(w/2+m*0.5)}`;
   }
-  if(t==="schrank"||t==="kommode"){
-    const fb=Math.min(11,h*0.32), n=Math.max(1,Math.round(w/(t==="schrank"?50:32))), dw=w/n;
+  if(t==="schrank"||t==="kommode"){   /* leicht schräg von vorn: Deckfläche oben, darunter die Front mit Türen bzw. Schubladen */
+    const col=F("#d9c7a3"), dk=szShade(col,-.22), dk2=szShade(col,-.42), lt=szShade(col,.3), top=h*0.22;
     let fr="";
-    for(let i=0;i<n;i++){
-      fr+=`<rect x="${i*dw+1.5}" y="${h-fb+1}" width="${dw-3}" height="${fb-2}" rx="2" fill="${t==="schrank"?"#b89a6e":"#c9ab7c"}" stroke="#7a6240" stroke-width="1"/>`;
-      fr+=t==="schrank"?`<circle cx="${i*dw+(i%2?5:dw-5)}" cy="${h-fb/2}" r="1.8" fill="#5a4630"/>`
-        :`<line x1="${i*dw+dw/2-5}" y1="${h-fb/2}" x2="${i*dw+dw/2+5}" y2="${h-fb/2}" stroke="#5a4630" stroke-width="2" stroke-linecap="round"/>`;
+    if(t==="schrank"){
+      const n=Math.max(1,Math.round(w/50)), dw=w/n;
+      for(let i=0;i<n;i++) fr+=`<rect x="${i*dw+2.5}" y="${top+3}" width="${dw-5}" height="${h-top-10}" rx="2" fill="${col}" stroke="${dk2}" stroke-width="1"/>
+        <circle cx="${i*dw+(i%2?7:dw-7)}" cy="${top+(h-top)/2-1}" r="1.9" fill="#5a4630"/>`;
+    }else{
+      const rows=h>=34?3:2, rh=(h-top-8)/rows;
+      for(let i=0;i<rows;i++) fr+=`<rect x="3" y="${top+3+i*rh}" width="${w-6}" height="${rh-2}" rx="2" fill="${col}" stroke="${dk2}" stroke-width="1"/>
+        <line x1="${w/2-6}" y1="${top+3+i*rh+(rh-2)/2}" x2="${w/2+6}" y2="${top+3+i*rh+(rh-2)/2}" stroke="#5a4630" stroke-width="2" stroke-linecap="round"/>`;
     }
-    return `<rect class="sz-main" width="${w}" height="${h}" rx="3" fill="${F("#d9c7a3")}" stroke="#8c7656" stroke-width="1.5"/>
-      <path d="M4 ${h*0.28}H${w-4}M4 ${h*0.5}H${w-4}" stroke="rgba(120,90,50,.2)" stroke-width="1"/>${fr}`;
+    return `<rect class="sz-main" width="${w}" height="${h}" fill="rgba(0,0,0,0)"/>
+      <ellipse cx="${w/2}" cy="${h-1}" rx="${w*0.48}" ry="3" fill="rgba(0,0,0,.16)" pointer-events="none"/>
+      <rect x="0" y="${top}" width="${w}" height="${h-top-3}" rx="2" fill="${dk}" stroke="${dk2}" stroke-width="1.2"/>${fr}
+      <rect x="3" y="${h-5}" width="${w-6}" height="4" rx="1" fill="${dk2}"/>
+      <rect x="-1.5" y="0" width="${w+3}" height="${top+2}" rx="3" fill="${lt}" stroke="${dk2}" stroke-width="1.2"/>`;
   }
   if(t==="pflanze"){
     const cx=w/2, cy=h/2, R=Math.min(w,h)/2; let lv="", st="";
