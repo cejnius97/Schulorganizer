@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:42"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:43"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1485,7 +1485,7 @@ function szChips(){
     <p class="sub">Erst einen Tisch im Plan antippen, dann hier auf einen Namen tippen.</p>
     <div>${free.map(s=>`<button class="grade" style="border:0;cursor:pointer" data-sz-chip="${esc(s.name)}">${SEX_ICON[s.sex]?SEX_ICON[s.sex]+" ":""}${esc(s.name)}</button>`).join("")||'<span class="empty">Alle Schüler haben einen Platz (oder die Klasse hat noch keine Schüler).</span>'}</div>
     <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
-      <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-seats="1">Sitzplätze leeren</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
+      <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-seats="1" title="Nimmt nur die Schülernamen aus dem Plan; Tische bleiben unverändert">Sitzplätze leeren</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
 }
 function szFontBar(){
   const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel); const d=it?"":" disabled";
@@ -1656,10 +1656,17 @@ function szBindChips(){
     save(); render(); });
   box.querySelectorAll("[data-sz-print]").forEach(b=>b.onclick=szPrint);
   box.querySelectorAll("[data-sz-seats]").forEach(b=>b.onclick=()=>{
-    if(!p.items.some(i=>szSeatCount(i)&&(i.names||[]).some(x=>x.trim()))){ alert("Auf den Sitzplätzen steht kein Name."); return; }
-    if(!confirm("Alle Namen von den Sitzplätzen nehmen? Die Tische selbst bleiben genau so, wie sie sind. Mit „Rückgängig“ lässt es sich zurücknehmen.")) return;
-    /* nur die Einträge der Sitzplätze leeren; Position, Größe, Drehung, Schrift und alle weiteren Texte am Tisch bleiben unverändert */
-    p.items.forEach(i=>{ const n=szSeatCount(i); if(n&&i.names){ for(let k=0;k<n&&k<i.names.length;k++) i.names[k]=""; if(!i.names.some(x=>x.trim())) i.names=[]; } });
+    /* nur Einträge, die genau einem Schüler der Klassenliste entsprechen; Tische und alle anderen Texte bleiben unverändert */
+    const isKid=x=>!!szStudent(x);
+    if(!p.items.some(i=>(i.names||[]).some(isKid))){ alert("Im Plan steht kein Schülername aus der Klassenliste."); return; }
+    if(!confirm("Alle Schülernamen aus dem Plan nehmen? Die Tische und alle anderen Texte bleiben genau so, wie sie sind. Mit „Rückgängig“ lässt es sich zurücknehmen.")) return;
+    p.items.forEach(i=>{
+      if(!i.names||!i.names.some(isKid)) return;
+      const n=szSeatCount(i);   /* Sitzplätze behalten ihre Zeile (leer), damit die übrigen Plätze nicht verrutschen */
+      const out=i.names.map(x=>isKid(x)?"":x);
+      i.names=[...out.slice(0,n),...out.slice(n).filter(x=>x.trim())];
+      if(!i.names.some(x=>x.trim())) i.names=[];
+    });
     save(); render(); });
   box.querySelectorAll("[data-sz-clear]").forEach(b=>b.onclick=()=>{
     if(!confirm("Alle Tische und Objekte dieses Plans löschen?")) return; p.items=[]; szSel=null; save(); render(); });
