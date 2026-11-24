@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 19:08"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 19:10"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1568,17 +1568,33 @@ function szChips(){
     <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
       <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-seats="1" title="Nimmt nur die Schülernamen aus dem Plan; Tische bleiben unverändert">Sitzplätze leeren</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
 }
+/* Gegenstand duplizieren: gleiche Größe, Drehung, Farbe und Schrift; Schülernamen werden nicht mitkopiert
+   (kein Schüler an zwei Plätzen), Beschriftungen schon. Die Kopie steht neben dem Original, sonst leicht versetzt. */
+function szDuplicate(){
+  const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); if(!it) return;
+  const W=p.w*100, H=p.h*100, g=10;
+  const n={...JSON.parse(JSON.stringify(it)),id:uid()};
+  const nm=(it.names||[]).map(x=>szStudent(x)?"":x); n.names=nm.some(x=>x.trim())?nm:[];
+  const right=it.x+it.w+g, below=it.y+it.h+g;
+  if(right+it.w<=W+it.w/2){ n.x=szSnap(right); n.y=it.y; }
+  else if(below+it.h<=H+it.h/2){ n.x=it.x; n.y=szSnap(below); }
+  else { n.x=Math.min(W-it.w/2,it.x+20); n.y=Math.min(H-it.h/2,it.y+20); }
+  if(szHist[openClass]) szHist[openClass].t=0;     /* jede Kopie ist ein eigener Schritt für „Rückgängig“ */
+  p.items.push(n); szSel=n.id; save(); if(szHist[openClass]) szHist[openClass].t=0; render();
+}
 /* Farbe des markierten Gegenstands: Zeile über dem Plan, nur sichtbar, wenn ein Gegenstand angetippt ist */
 function szColorBar(){
   const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel), d=it?"":" disabled";
   const T=it?(SZ_TYPES[it.t]||SZ_TYPES.text):null;
-  return `<span class="sub" style="flex:1 1 100%">${it?"Farbe – "+esc(T.n)+":":"Farbe des Gegenstands – tippe zuerst einen Gegenstand im Plan an:"}</span>
+  return `<span class="sub" style="flex:1 1 100%">${it?esc(T.n)+" – Duplizieren und Farbe:":"Gegenstand – tippe zuerst einen Gegenstand im Plan an (Duplizieren, Farbe):"}</span>
+    <button class="btn" data-sz-dup2="1" style="flex:0 0 auto"${d} title="Kopiert den markierten Gegenstand mit gleicher Größe, Drehung und Farbe">⧉ Duplizieren</button>
     <input type="color" data-sz-fill="1" value="${esc((it&&(it.fill||SZ_DEF_FILL[it.t]))||"#dddddd")}" style="width:56px;height:38px;padding:2px;flex:0 0 auto" aria-label="Farbe wählen"${d}>
     <div style="display:flex;gap:6px;flex-wrap:wrap;flex:2 1 220px">${["#d9776a","#f0a04b","#f2d04b","#7cbf5a","#4f9fd9","#8f7fd9","#e58fb8","#a9794a","#9aa0a6","#ffffff","#333333"].map(c=>`<button type="button" data-sz-swatch="${c}" aria-label="Farbe ${c}" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #888;background:${c};cursor:${it?"pointer":"default"};padding:0;opacity:${it?1:.45}"${d}></button>`).join("")}</div>
     <button class="btn ghost" data-sz-fill-reset="1" style="flex:0 0 auto"${d}>Standardfarbe</button>`;
 }
 function szBindColor(){
   const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); const box=document.getElementById("szcolor"); if(!it||!box) return;
+  box.querySelectorAll("[data-sz-dup2]").forEach(b=>b.onclick=szDuplicate);
   const fl=box.querySelector("[data-sz-fill]"); if(fl) fl.oninput=()=>{ it.fill=fl.value; szRedraw(it); save(); };
   box.querySelectorAll("[data-sz-swatch]").forEach(b=>b.onclick=()=>{ it.fill=b.dataset.szSwatch; szRedraw(it); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-fill-reset]").forEach(b=>b.onclick=()=>{ delete it.fill; szRedraw(it); save(); szRefresh(); });
@@ -1692,8 +1708,7 @@ function szBindPanel(){
   box.querySelectorAll("[data-sz-scale]").forEach(b=>b.onclick=()=>{
     const f=+b.dataset.szScale; it.w=Math.min(600,Math.max(10,Math.round(it.w*f))); it.h=Math.min(600,Math.max(10,Math.round(it.h*f)));
     szRedraw(it); save(); szRefresh(); });
-  box.querySelectorAll("[data-sz-dup]").forEach(b=>b.onclick=()=>{
-    const n={...it,id:uid(),x:it.x+20,y:it.y+20,names:[...(it.names||[])]}; p.items.push(n); szSel=n.id; save(); render(); });
+  box.querySelectorAll("[data-sz-dup]").forEach(b=>b.onclick=szDuplicate);
   box.querySelectorAll("[data-sz-del]").forEach(b=>b.onclick=()=>{
     p.items=p.items.filter(x=>x.id!==it.id); szSel=null; save(); render(); });
   box.querySelectorAll("[data-sz-g]").forEach(i=>i.onchange=()=>{
