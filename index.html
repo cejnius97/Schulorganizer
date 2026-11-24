@@ -1555,9 +1555,6 @@ function szPanel(){
       <button class="btn ghost" data-sz-rot="-90">⟲ 90°</button><button class="btn ghost" data-sz-rot="90">⟳ 90°</button></div>
     <div class="row"><button class="btn ghost" data-sz-scale="0.9">− kleiner</button><button class="btn ghost" data-sz-scale="1.1">+ größer</button>
       <button class="btn ghost" data-sz-dup="1">Duplizieren</button><button class="btn ghost" data-sz-del="1">Löschen</button></div>
-    <div class="row" style="align-items:center;margin-top:8px"><label style="flex:0 0 auto">Farbe<input type="color" data-sz-fill="1" value="${esc(it.fill||SZ_DEF_FILL[it.t]||"#dddddd")}" style="width:56px;height:38px;padding:2px"></label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;flex:2 1 220px">${["#d9776a","#f0a04b","#f2d04b","#7cbf5a","#4f9fd9","#8f7fd9","#e58fb8","#a9794a","#9aa0a6","#ffffff","#333333"].map(c=>`<button type="button" data-sz-swatch="${c}" aria-label="Farbe ${c}" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #888;background:${c};cursor:pointer;padding:0"></button>`).join("")}</div>
-      <button class="btn ghost" data-sz-fill-reset="1" style="flex:0 0 auto">Standardfarbe</button></div>
     ${T.seats?`
     <div class="row" style="margin-top:8px">${Array.from({length:T.seats},(_,k)=>`<label>Figur Platz ${k+1}<select data-sz-g="${k}"><option value="j" ${szGender(it,k)==="j"?"selected":""}>Junge</option><option value="m" ${szGender(it,k)==="m"?"selected":""}>Mädchen</option></select></label>`).join("")}</div>`:""}`;
 }
@@ -1571,13 +1568,28 @@ function szChips(){
     <div class="row" style="margin-top:10px"><button class="btn ghost" data-sz-rand="1">🎲 Zufällig auf freie Plätze</button>
       <button class="btn ghost" data-sz-print="1">🖨 Sitzplan drucken</button><button class="btn ghost" data-sz-seats="1" title="Nimmt nur die Schülernamen aus dem Plan; Tische bleiben unverändert">Sitzplätze leeren</button><button class="btn ghost" data-sz-clear="1">Plan leeren</button></div>`;
 }
+/* Farbe des markierten Gegenstands: Zeile über dem Plan, nur sichtbar, wenn ein Gegenstand angetippt ist */
+function szColorBar(){
+  const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); if(!it) return "";
+  const T=SZ_TYPES[it.t]||SZ_TYPES.text;
+  return `<span class="sub" style="flex:1 1 100%">Farbe – ${esc(T.n)}:</span>
+    <input type="color" data-sz-fill="1" value="${esc(it.fill||SZ_DEF_FILL[it.t]||"#dddddd")}" style="width:56px;height:38px;padding:2px;flex:0 0 auto" aria-label="Farbe wählen">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:2 1 220px">${["#d9776a","#f0a04b","#f2d04b","#7cbf5a","#4f9fd9","#8f7fd9","#e58fb8","#a9794a","#9aa0a6","#ffffff","#333333"].map(c=>`<button type="button" data-sz-swatch="${c}" aria-label="Farbe ${c}" style="width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #888;background:${c};cursor:pointer;padding:0"></button>`).join("")}</div>
+    <button class="btn ghost" data-sz-fill-reset="1" style="flex:0 0 auto">Standardfarbe</button>`;
+}
+function szBindColor(){
+  const {p}=szCtx(); const it=p&&p.items.find(x=>x.id===szSel); const box=document.getElementById("szcolor"); if(!it||!box) return;
+  const fl=box.querySelector("[data-sz-fill]"); if(fl) fl.oninput=()=>{ it.fill=fl.value; szRedraw(it); save(); };
+  box.querySelectorAll("[data-sz-swatch]").forEach(b=>b.onclick=()=>{ it.fill=b.dataset.szSwatch; szRedraw(it); save(); szRefresh(); });
+  box.querySelectorAll("[data-sz-fill-reset]").forEach(b=>b.onclick=()=>{ delete it.fill; szRedraw(it); save(); szRefresh(); });
+}
 function szFontBar(){
   const {p}=szCtx(); const it=p.items.find(x=>x.id===szSel); const d=it?"":" disabled";
   return `<span class="sub" style="flex:1 1 100%">${it?"Schrift des markierten Feldes:":"Schrift – tippe zuerst ein Feld im Plan an:"}</span>
     <label style="flex:3 1 220px">${it&&(SZ_TYPES[it.t]||{}).seats?"Namen (Zeile 1 = Platz 1 …, leere Zeile = freier Platz)":"Beschriftung"}<textarea data-sz-names style="min-height:56px;height:56px"${d}>${it?esc((it.names||[]).join("\n")):""}</textarea></label>
     <label style="flex:2">Schriftart<select data-sz-style="font"${d}>${Object.entries(SZ_FONTS).map(([k,v])=>`<option value="${k}" ${it&&(it.font||"")===k?"selected":""} style="font-family:${esc(v[1]||"inherit")}">${v[0]}</option>`).join("")}</select></label>
     <label>Größe (leer = auto)<input type="number" min="4" max="60" step="1" data-sz-style="fs" value="${it&&it.fs?it.fs:""}" placeholder="auto"${d}></label>
-    <label style="flex:0 0 80px">Farbe<input type="color" data-sz-style="color" value="${(it&&it.color)||(it&&it.t==="tafel"?"#f4f4ea":"#3b2a12")}" style="padding:2px;height:38px"${d}></label>
+    <label style="flex:0 0 100px">Schriftfarbe<input type="color" data-sz-style="color" value="${(it&&it.color)||(it&&it.t==="tafel"?"#f4f4ea":"#3b2a12")}" style="padding:2px;height:38px"${d}></label>
     <button class="btn ghost" data-sz-style-reset="1"${d}>Zurücksetzen</button><button class="btn ghost" data-sz-style-all="1"${d}>Für alle Felder</button>`;
 }
 function szBindFont(){
@@ -1597,6 +1609,7 @@ function szRefresh(){
   const a=document.getElementById("szpanel"), b=document.getElementById("szchips"); if(!a||!b) return;
   a.innerHTML=szPanel(); b.innerHTML=szChips(); szBindPanel(); szBindChips();
   const fb=document.getElementById("szfont"); if(fb){ fb.innerHTML=szFontBar(); szBindFont(); }
+  const cb=document.getElementById("szcolor"); if(cb){ cb.innerHTML=szColorBar(); cb.style.marginBottom=szSel?"12px":"0"; szBindColor(); }
 }
 /* Meter-Raster: 1 Einheit = 1 cm; Linien alle 1 m, Beschriftung am oberen und linken Rand */
 function szGrid(w,h){
@@ -1632,6 +1645,7 @@ function vSitz(){
       <label style="flex:1">Drehgeschwindigkeit<select data-sz-speed="1">${[["1","Normal"],["0.5","Langsam"],["0.25","Sehr langsam"]].map(([v,n])=>`<option value="${v}" ${(state.szRotSpeed||0.5)==+v?"selected":""}>${n}</option>`).join("")}</select></label></div>
     <div class="row">${Object.entries(SZ_TYPES).map(([k,t])=>`<button class="btn ghost" data-sz-add="${k}">${t.ic} ${t.n}</button>`).join("")}</div>
     <div class="row" id="szfont" style="align-items:end">${szFontBar()}</div>
+    <div class="row" id="szcolor" style="align-items:center;margin-bottom:${szSel?"12px":"0"}">${szColorBar()}</div>
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:6px">
       <span class="sub">Zoom</span>
       <button class="btn ghost" data-sz-z="-1" style="padding:6px 12px;font-size:1.1rem;line-height:1" aria-label="Verkleinern">−</button>
@@ -1669,9 +1683,6 @@ function szBindPanel(){
   box.querySelectorAll("[data-sz-p]").forEach(i=>i.oninput=()=>{
     const k=i.dataset.szP, v=parseFloat(i.value); if(isNaN(v)) return;
     it[k]=k==="rot"?v:Math.min(600,Math.max(10,v)); szRedraw(it); szSyncPanelLvl(it); save(); });
-  const fl=box.querySelector("[data-sz-fill]"); if(fl) fl.oninput=()=>{ it.fill=fl.value; szRedraw(it); save(); };
-  box.querySelectorAll("[data-sz-swatch]").forEach(b=>b.onclick=()=>{ it.fill=b.dataset.szSwatch; szRedraw(it); save(); szRefresh(); });
-  box.querySelectorAll("[data-sz-fill-reset]").forEach(b=>b.onclick=()=>{ delete it.fill; szRedraw(it); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-level]").forEach(b=>b.onclick=()=>{
     it.rot=(((Math.round((it.rot||0)/90)*90)%360)+360)%360; szRedraw(it); save(); szRefresh(); });
   box.querySelectorAll("[data-sz-level-all]").forEach(b=>b.onclick=()=>{
@@ -1859,7 +1870,7 @@ function bindSitz(m){
   svg.onpointerup=svg.onpointercancel=()=>{
     if(drag&&drag.moved) save(); drag=null;
     svg.querySelectorAll("#szlevel,#szguides").forEach(n=>n.remove()); };
-  szBindPanel(); szBindChips(); szBindFont();
+  szBindPanel(); szBindChips(); szBindFont(); szBindColor();
 }
 
 /* ---------- Fortbildungen ---------- */
