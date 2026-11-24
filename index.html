@@ -256,7 +256,7 @@ function save(){
     }
   }catch(e){ if(!APP) storageWarn(true); }
 }
-const APP_VERSION="24.11.2026 18:41"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
+const APP_VERSION="24.11.2026 18:42"; /* bei jeder Aenderung am Programm neu setzen: Datum Uhrzeit */
 let _loadInfo="";
 function storeInfo(t){ const e=document.getElementById("storeinfo"); if(e) e.textContent="Version "+APP_VERSION+" · "+(APP?"Programm":"Browser-Speicher")+" · "+_loadInfo+(t?" · "+t:""); }
 /* Warnhinweis, wenn der Browser (z. B. iPad im Privatmodus oder als Datei geöffnet) nicht dauerhaft speichern kann */
@@ -1657,8 +1657,10 @@ function szBindChips(){
   box.querySelectorAll("[data-sz-print]").forEach(b=>b.onclick=szPrint);
   box.querySelectorAll("[data-sz-seats]").forEach(b=>b.onclick=()=>{
     if(!p.items.some(i=>szSeatCount(i)&&(i.names||[]).some(x=>x.trim()))){ alert("Auf den Sitzplätzen steht kein Name."); return; }
-    if(!confirm("Alle Namen von den Sitzplätzen nehmen? Die Tische bleiben stehen. Mit „Rückgängig“ lässt es sich zurücknehmen.")) return;
-    p.items.forEach(i=>{ if(szSeatCount(i)) i.names=[]; }); save(); render(); });
+    if(!confirm("Alle Namen von den Sitzplätzen nehmen? Die Tische selbst bleiben genau so, wie sie sind. Mit „Rückgängig“ lässt es sich zurücknehmen.")) return;
+    /* nur die Einträge der Sitzplätze leeren; Position, Größe, Drehung, Schrift und alle weiteren Texte am Tisch bleiben unverändert */
+    p.items.forEach(i=>{ const n=szSeatCount(i); if(n&&i.names){ for(let k=0;k<n&&k<i.names.length;k++) i.names[k]=""; if(!i.names.some(x=>x.trim())) i.names=[]; } });
+    save(); render(); });
   box.querySelectorAll("[data-sz-clear]").forEach(b=>b.onclick=()=>{
     if(!confirm("Alle Tische und Objekte dieses Plans löschen?")) return; p.items=[]; szSel=null; save(); render(); });
 }
